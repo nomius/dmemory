@@ -1,0 +1,20 @@
+MFLAGS=-AC99 +DD64 -DC99 -DMEM_DEBUG
+
+all: libmemory.sl test.c
+	$(CC) $(MFLAGS) test.c -g -otest -L. -I. -lmemory
+
+libmemory.sl: memory.o list.o exceptions.o
+	$(CC) $(MFLAGS) -b -o $@ $?
+
+memory.o: memory.c memory.h debug.h
+	$(CC) $(MFLAGS) -g +z -c $<
+
+list.o: list.c list.h
+	$(CC) $(MFLAGS) -g +z -c $<
+
+exceptions.o: exceptions.c exceptions.h
+	$(CC) $(MFLAGS) -g +z -c $<
+
+clean:
+	rm -f memory.o list.o exceptions.o libmemory.sl test.o test
+
