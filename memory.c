@@ -54,7 +54,7 @@ static stack_variable *ptr_last_var;
 
 void sigsegv_handler(int sig)
 {
-	fprintf(report, "There's a major corruption at %X right after %s at %d.\n", last_checked, last_file_ok, last_line_ok);
+	fprintf(report, "There's a major corruption at 0x%X right after %s at %d.\n", last_checked, last_file_ok, last_line_ok);
 	fprintf(report, "This normally means that you really screwed things up.\n");
 	fclose(report);
 	exit(1);
@@ -86,7 +86,7 @@ void *__xmalloc(void **ptr, size_t size, char *file, int line)
 {
 #ifdef MEM_DEBUG
     /* A sanity check */
-    if (*ptr != NULL && search_pointer(stack, *ptr - SIZE_SIGNATURE) != NULL)
+    if (*ptr != NULL && search_pointer(stack, ((char *)*ptr) - SIZE_SIGNATURE) != NULL)
         debug(WARNING, " Pointer in use. Memory leak ahead\n", file, line);
 
     /* Get that memory! */
@@ -100,7 +100,7 @@ void *__xmalloc(void **ptr, size_t size, char *file, int line)
         /* Save the first pointer */
 
         add_signature_to_variable(*ptr, size);
-        return *ptr + SIZE_SIGNATURE;
+        return ((char *)*ptr) + SIZE_SIGNATURE;
     }
 
     /* Ok, something went wrong */
@@ -131,15 +131,15 @@ void *__xrealloc(void **ptr, size_t size, char *file, int line)
     /* ptr != NULL and size != 0. Classic realloc */
 
     /* If the pointer doesn't exists but he stills want that memory let's just give it to him */
-    if ((myvar = search_pointer(stack, *ptr - SIZE_SIGNATURE )) == NULL)
+    if ((myvar = search_pointer(stack, ((char *)*ptr) - SIZE_SIGNATURE )) == NULL)
         return __xmalloc(ptr, size, file, line);
 
     /* It does exists in our stack, let's just increase it and leave */
-    if ((tptr = realloc(*ptr - SIZE_SIGNATURE, size + SIZE_SIGNATURE * 2)) != NULL) {
+    if ((tptr = realloc(((char *)*ptr) - SIZE_SIGNATURE, size + SIZE_SIGNATURE * 2)) != NULL) {
         add_signature_to_variable(tptr, size);
         myvar->size = size;
         myvar->variable = tptr;
-        return tptr + SIZE_SIGNATURE;
+        return ((char *)tptr) + SIZE_SIGNATURE;
     }
 
     /* Ok, something went wrong */
@@ -157,7 +157,7 @@ void *__xcalloc(void **ptr, size_t nmemb, size_t size, char *file, int line)
     stack_variable *myvar = NULL;
 
     /* A sanity check */
-    if (*ptr != NULL && search_pointer(stack, *ptr - 6) != NULL)
+    if (*ptr != NULL && search_pointer(stack, ((char *)*ptr) - SIZE_SIGNATURE) != NULL)
         debug(WARNING, " Pointer in use. Memory leak ahead\n", file, line);
 
     /* Get that memory and blank it! */
@@ -166,7 +166,7 @@ void *__xcalloc(void **ptr, size_t nmemb, size_t size, char *file, int line)
         /* Register the variable in the stack */
 		ptr_last_var = add_pointer_to_stack(stack, *ptr, size, file, line);
         add_signature_to_variable(*ptr, size);
-        return *ptr + SIZE_SIGNATURE;
+        return ((char *)*ptr) + SIZE_SIGNATURE;
     }
 
     /* Ok, something went wrong */
@@ -184,10 +184,10 @@ int __xfree(void **ptr, char *file, int line)
     stack_variable *myvar = NULL;
 
     /* If the pointer doesn't exists just leave, there's nothing to free */
-    if ((myvar = search_pointer(stack, *ptr - SIZE_SIGNATURE)) != NULL) {
+    if ((myvar = search_pointer(stack, ((char *)*ptr) - SIZE_SIGNATURE)) != NULL) {
         /* Remove the variable from the stack and clean up the variable */
         remove_pointer_from_stack(stack, myvar);
-        free(*ptr - SIZE_SIGNATURE);
+        free(((char *)*ptr) - SIZE_SIGNATURE);
         *ptr = NULL;
         return 0;
     }
@@ -195,7 +195,7 @@ int __xfree(void **ptr, char *file, int line)
           file, line);
     return 1;
 #else
-	 free(*ptr);
+    free(*ptr);
 #endif
 }
 
