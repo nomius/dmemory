@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
     /* Show it... you know, for the kids, they like I/O */
     for (i = 0; i < 15; i++)
         printf("%d: %d\n", i, ptr[i]);
-	/* We never call xfree on this one, to create a leak. */
+    /* We never call xfree on this one, to create a leak. */
 
 
     /* Since ss points to 'i', but it wasn't malloc'ed this will not issue a 
