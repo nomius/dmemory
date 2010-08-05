@@ -37,8 +37,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define SIGNATURE "(D)(M)\0"
-#define SIZE_SIGNATURE (strlen(SIGNATURE)+1)
+#define SIGNATURE "(D)(M).\0"
+#define SIZE_SIGNATURE ((int)(strlen(SIGNATURE)+1))
 #define VAR_REPORT_FILENAME "DMEMORY_REPORT"
 
 void *__xmalloc(void **ptr, size_t size, char *file, int line);
