@@ -1,12 +1,12 @@
 MFLAGS=-DC99 -DMEM_DEBUG -gdwarf-2 -g3
 
-all: libmemory.so test.c
-	$(CC) test.c -g -otest -lmemory -L. $(MFLAGS)
+all: libdmemory.so test.c
+	$(CC) test.c -g -otest -ldmemory -L. $(MFLAGS)
 
-libmemory.so: memory.o list.o exceptions.o
+libdmemory.so: dmemory.o list.o exceptions.o
 	$(CC) -shared -Wl,-soname,$@ -o $@ $? $(MFLAGS)
 
-memory.o: memory.c memory.h debug.h
+dmemory.o: dmemory.c dmemory.h debug.h
 	$(CC) -fPIC $(MFLAGS) -g -c $<
 
 list.o: list.c list.h
@@ -16,4 +16,4 @@ exceptions.o: exceptions.c exceptions.h
 	$(CC) -fPIC $(MFLAGS) -g -c $<
 
 clean:
-	rm -f memory.o libmemory.so test.o list.o test
+	rm -f dmemory.o libdmemory.so exceptions.o test.o list.o test
