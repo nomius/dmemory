@@ -46,7 +46,7 @@ typedef struct _TExceptions {
 TExceptions *Exceptions;
 int NumExceptions;
 
-int load_exceptions_file(void);
-int ExceptLeak(char *filename, int line);
+int __load_exceptions_file(void);
+int __ExceptLeak(char *filename, int line);
 
 #endif

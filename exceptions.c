@@ -41,7 +41,19 @@
 #include "exceptions.h"
 #include "debug.h"
 
-int load_exceptions_file(void)
+static inline int max_strlen(const char *str, int maxlen)
+{
+    int i = 0;
+
+    while (str[i] != '\0')
+        if (i == maxlen)
+            break;
+        else
+            i += 1;
+    return i;
+}
+
+int __load_exceptions_file(void)
 {
     char *filename = NULL;
     FILE *FExceptions = NULL;
@@ -72,27 +84,40 @@ int load_exceptions_file(void)
 
     /* Load the exceptions to an array */
     while (fgets(tmpbuf, MAX_BUF, FExceptions) != NULL) {
+
+        /* Check if the user try to screw us with junk */
+        if (max_strlen(tmpbuf, MAX_BUF) == MAX_BUF) {
+            debug(WARNING, "Exception filename too large at line %d\n", "LIBRARY", 0, NumExceptions + 1);
+            continue;
+        }
+
         Exceptions = realloc(Exceptions, sizeof (TExceptions) * (NumExceptions + 1));
-        itmp = strchr(tmpbuf, FIELD_SEPARATOR);
-        Exceptions[NumExceptions].line = atoi(itmp + 1);
-        itmp = '\0';
-        Exceptions[NumExceptions].filename = strdup(tmpbuf);
+        if ((itmp = strchr(tmpbuf, FIELD_SEPARATOR)) != NULL) {
+            Exceptions[NumExceptions].line = atoi(itmp + 1);
+            *itmp = '\0';
+        }
+        else
+            Exceptions[NumExceptions].line = -1;
+       	Exceptions[NumExceptions].filename = strdup(tmpbuf);
+        if ((itmp = strchr(Exceptions[NumExceptions].filename, '\n')) != NULL) 
+            *itmp = '\0';
+
         NumExceptions += 1;
     }
     return 0;
 }
 
-int ExceptLeak(char *filename, int line)
+int __ExceptLeak(char *filename, int line)
 {
     int i = 0;
 
     for (i = 0; i < NumExceptions; i++)
-        if (!strcmp(filename, Exceptions[NumExceptions].filename) && line == Exceptions[NumExceptions].line)
+        if (!strcmp(filename, Exceptions[i].filename) && (line == Exceptions[i].line || Exceptions[i].line == -1))
             return 1;
     return 0;
 }
 
-void free_exceptions(void)
+void __free_exceptions(void)
 {
     int i = 0;
 
