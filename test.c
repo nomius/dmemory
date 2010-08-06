@@ -31,7 +31,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "memory.h"
+#include "dmemory.h"
 #include <stdio.h>
 
 int main(int argc, char *argv[])
@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
     char *ss = (char *)&i;
 
     /* Initialice debug so full level is used */
-    memory_init(5);
+    dmemory_init(5);
 
     /* ptr points to NULL, so xmalloc is sane */
     ptr = xmalloc(ptr, sizeof(int) * 10);
@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 
     /* This is on purpose to create another memory leak */
     /*xfree(ss);*/
-    if (memory_end())
+    if (dmemory_end())
         return 1;
 
     return 0;
