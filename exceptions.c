@@ -41,6 +41,7 @@
 #include "exceptions.h"
 #include "debug.h"
 
+/* This should be strnlen... THANKS GNU PEOPLE FOR SCREWING THE NAMESPACE! */
 static inline int max_strlen(const char *str, int maxlen)
 {
     int i = 0;
@@ -90,8 +91,10 @@ int __load_exceptions_file(void)
             debug(WARNING, "Exception filename too large at line %d\n", "LIBRARY", 0, NumExceptions + 1);
             continue;
         }
-
+        /* Save space for one more */
         Exceptions = realloc(Exceptions, sizeof (TExceptions) * (NumExceptions + 1));
+
+        /* If no field separator was given, then he wants the whole exception */
         if ((itmp = strchr(tmpbuf, FIELD_SEPARATOR)) != NULL) {
             Exceptions[NumExceptions].line = atoi(itmp + 1);
             *itmp = '\0';
@@ -111,6 +114,7 @@ int __ExceptLeak(char *filename, int line)
 {
     int i = 0;
 
+    /* Go through the Exceptions array and check it */
     for (i = 0; i < NumExceptions; i++)
         if (!strcmp(filename, Exceptions[i].filename) && (line == Exceptions[i].line || Exceptions[i].line == -1))
             return 1;
@@ -121,6 +125,7 @@ void __free_exceptions(void)
 {
     int i = 0;
 
+    /* Go through the Exceptions array and free it */
     for (i = 0; i < NumExceptions; i++)
         free(Exceptions[NumExceptions].filename);
     free(Exceptions);

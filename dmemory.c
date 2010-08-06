@@ -54,6 +54,7 @@ static stack_variable *ptr_last_var;
 
 void sigsegv_handler(int sig)
 {
+    /* This will happen in case he screw up the stack badley */
 	fprintf(report, "There's a major corruption at 0x%X right after %s at %d.\n", last_checked, last_file_ok, last_line_ok);
 	fprintf(report, "This normally means that you really screwed things up.\n");
 	fclose(report);
@@ -95,9 +96,8 @@ void *__xmalloc(void **ptr, size_t size, char *file, int line)
         if (stack->next == NULL)
             ptr_last_var = add_pointer_to_stack(stack, *ptr, size, file, line);
         else
+            /* Save the first pointer */
             add_pointer_to_stack(stack, *ptr, size, file, line);
-
-        /* Save the first pointer */
 
         add_signature_to_variable(*ptr, size);
         return ((char *)*ptr) + SIZE_SIGNATURE;
@@ -118,11 +118,13 @@ void *__xrealloc(void **ptr, size_t size, char *file, int line)
     void *tptr = NULL;
     stack_variable *myvar = NULL;
 
+    /* If ptr is NULL and size is not 0, then is just plain malloc */
     if (*ptr == NULL) {
         if (size != 0)
             return __xmalloc(ptr, size, file, line);
         return NULL;
     }
+    /* If size is 0, then, plain free */
     else if (size == 0) {
         __xfree(ptr, file, line);
         return NULL;
@@ -136,6 +138,7 @@ void *__xrealloc(void **ptr, size_t size, char *file, int line)
 
     /* It does exists in our stack, let's just increase it and leave */
     if ((tptr = realloc(((char *)*ptr) - SIZE_SIGNATURE, size + SIZE_SIGNATURE * 2)) != NULL) {
+        /* Add the signature and update the stack information */
         add_signature_to_variable(tptr, size);
         myvar->size = size;
         myvar->variable = tptr;
@@ -163,7 +166,7 @@ void *__xcalloc(void **ptr, size_t nmemb, size_t size, char *file, int line)
     /* Get that memory and blank it! */
     if ((*ptr = calloc(nmemb + SIZE_SIGNATURE * 2, size)) != NULL) {
 
-        /* Register the variable in the stack */
+        /* Register the variable in the stack and put signature to it */
 		ptr_last_var = add_pointer_to_stack(stack, *ptr, size, file, line);
         add_signature_to_variable(*ptr, size);
         return ((char *)*ptr) + SIZE_SIGNATURE;
@@ -241,12 +244,14 @@ int dmemory_end(void)
 
     /* We capture SIGSEV because CheckSignatures could break our program if
      * there's actually a memory corruption by the user */
+    /* This should be changed in order of sigaction, since it is more polite */
     signal(SIGSEGV, sigsegv_handler);
 
     /* For every variable in the stack */
     /* We go from back to top in case he broke things up badley */
     for (ptr = ptr_last_var;; ptr = ptr->prev) {
 
+        /* This will help us in case he screw up the stack badley */
         last_file_ok = ptr->filename;
         last_line_ok = ptr->line;
         last_checked = ptr->variable;
