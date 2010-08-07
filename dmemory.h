@@ -49,15 +49,15 @@ void memory_init(int level);
 int memory_end(void);
 
 #ifdef C89
-#define xmalloc(ptr, size) ((typeof(ptr)) __xmalloc((void **)&(ptr), (size), (char *)__FILE__, __LINE__))
-#define xcalloc(ptr, nmemb, size) ((typeof(ptr)) __xcalloc((void **)&(ptr), (nmemb), (size), (char *)__FILE__, __LINE__))
-#define xrealloc(ptr, size) ((typeof(ptr)) __xrealloc((void **)&(ptr), (size), (char *)__FILE__, __LINE__))
-#define xfree(ptr) __xfree((void **)&(ptr), (char *)__FILE__, __LINE__)
+#define dmalloc(ptr, size) ((typeof(ptr)) __dmalloc((void **)&(ptr), (size), (char *)__FILE__, __LINE__))
+#define dcalloc(ptr, nmemb, size) ((typeof(ptr)) __dcalloc((void **)&(ptr), (nmemb), (size), (char *)__FILE__, __LINE__))
+#define drealloc(ptr, size) ((typeof(ptr)) __drealloc((void **)&(ptr), (size), (char *)__FILE__, __LINE__))
+#define dfree(ptr) __dfree((void **)&(ptr), (char *)__FILE__, __LINE__)
 #elif C99
-#define xmalloc(ptr, size) __xmalloc((void **)&(ptr), (size), (char *)__FILE__, __LINE__)
-#define xcalloc(ptr, nmemb, size) __xcalloc((void **)&(ptr), (nmemb), (size), (char *)__FILE__, __LINE__)
-#define xrealloc(ptr, size) __xrealloc((void **)&(ptr), (size), (char *)__FILE__, __LINE__)
-#define xfree(ptr) __xfree((void **)&(ptr), (char *)__FILE__, __LINE__)
+#define dmalloc(ptr, size) __dmalloc((void **)&(ptr), (size), (char *)__FILE__, __LINE__)
+#define dcalloc(ptr, nmemb, size) __dcalloc((void **)&(ptr), (nmemb), (size), (char *)__FILE__, __LINE__)
+#define drealloc(ptr, size) __drealloc((void **)&(ptr), (size), (char *)__FILE__, __LINE__)
+#define dfree(ptr) __dfree((void **)&(ptr), (char *)__FILE__, __LINE__)
 #endif
 
 #endif

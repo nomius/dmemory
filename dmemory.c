@@ -83,7 +83,7 @@ static int CheckSignatures(void *ptr, size_t size)
     return 0;
 }
 
-void *__xmalloc(void **ptr, size_t size, char *file, int line)
+void *__dmalloc(void **ptr, size_t size, char *file, int line)
 {
 #ifdef MEM_DEBUG
     /* A sanity check */
@@ -112,7 +112,7 @@ void *__xmalloc(void **ptr, size_t size, char *file, int line)
 #endif
 }
 
-void *__xrealloc(void **ptr, size_t size, char *file, int line)
+void *__drealloc(void **ptr, size_t size, char *file, int line)
 {
 #ifdef MEM_DEBUG
     void *tptr = NULL;
@@ -121,12 +121,12 @@ void *__xrealloc(void **ptr, size_t size, char *file, int line)
     /* If ptr is NULL and size is not 0, then is just plain malloc */
     if (*ptr == NULL) {
         if (size != 0)
-            return __xmalloc(ptr, size, file, line);
+            return __dmalloc(ptr, size, file, line);
         return NULL;
     }
     /* If size is 0, then, plain free */
     else if (size == 0) {
-        __xfree(ptr, file, line);
+        __dfree(ptr, file, line);
         return NULL;
     }
 
@@ -134,7 +134,7 @@ void *__xrealloc(void **ptr, size_t size, char *file, int line)
 
     /* If the pointer doesn't exists but he stills want that memory let's just give it to him */
     if ((myvar = search_pointer(stack, ((char *)*ptr) - SIZE_SIGNATURE )) == NULL)
-        return __xmalloc(ptr, size, file, line);
+        return __dmalloc(ptr, size, file, line);
 
     /* It does exists in our stack, let's just increase it and leave */
     if ((tptr = realloc(((char *)*ptr) - SIZE_SIGNATURE, size + SIZE_SIGNATURE * 2)) != NULL) {
@@ -154,7 +154,7 @@ void *__xrealloc(void **ptr, size_t size, char *file, int line)
 #endif
 }
 
-void *__xcalloc(void **ptr, size_t nmemb, size_t size, char *file, int line)
+void *__dcalloc(void **ptr, size_t nmemb, size_t size, char *file, int line)
 {
 #ifdef MEM_DEBUG
     stack_variable *myvar = NULL;
@@ -181,7 +181,7 @@ void *__xcalloc(void **ptr, size_t nmemb, size_t size, char *file, int line)
 #endif
 }
 
-int __xfree(void **ptr, char *file, int line)
+int __dfree(void **ptr, char *file, int line)
 {
 #ifdef MEM_DEBUG
     stack_variable *myvar = NULL;
