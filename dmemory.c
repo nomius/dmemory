@@ -46,15 +46,17 @@ static void add_signature_to_variable(void *ptr, size_t size);
 static int CheckSignatures(void *ptr, size_t size);
 
 static stack_variable *stack;
+
+static stack_variable *ptr_last_var;
 static void *last_checked;
 static char *last_file_ok;
 static int last_line_ok;
+
 static FILE *report;
-static stack_variable *ptr_last_var;
 
 void sigsegv_handler(int sig)
 {
-    /* This will happen in case he screw up the stack badley */
+	/* This will happen in case he screw up the stack badley */
 	fprintf(report, "There's a major corruption at 0x%X right after %s at %d.\n", last_checked, last_file_ok, last_line_ok);
 	fprintf(report, "This normally means that you really screwed things up.\n");
 	fclose(report);
@@ -63,224 +65,223 @@ void sigsegv_handler(int sig)
 
 static void add_signature_to_variable(void *ptr, size_t size)
 {
-    char *tmp = (char *)ptr;
+	char *tmp = (char *)ptr;
 
-    /* Add the signature to the beginning */
-    memcpy(tmp, SIGNATURE, SIZE_SIGNATURE);
+	/* Add the signature to the beginning */
+	memcpy(tmp, SIGNATURE, SIZE_SIGNATURE);
 
-    /* Add the signature to the end */
-    memcpy(tmp + SIZE_SIGNATURE + size, SIGNATURE, SIZE_SIGNATURE);
+	/* Add the signature to the end */
+	memcpy(tmp + SIZE_SIGNATURE + size, SIGNATURE, SIZE_SIGNATURE);
 }
 
 static int CheckSignatures(void *ptr, size_t size)
 {
-    char *tmp = (char *)ptr;
+	char *tmp = (char *)ptr;
 
-    /* Check the signature in the beginning and the end */
-    if (!memcmp(tmp, SIGNATURE, SIZE_SIGNATURE) && !memcmp(tmp + SIZE_SIGNATURE + size, SIGNATURE, SIZE_SIGNATURE))
-        return 1;
+	/* Check the signature in the beginning and the end */
+	if (!memcmp(tmp, SIGNATURE, SIZE_SIGNATURE)	&& !memcmp(tmp + SIZE_SIGNATURE + size, SIGNATURE, SIZE_SIGNATURE))
+		return 1;
 
-    return 0;
+	return 0;
 }
 
 void *__dmalloc(void **ptr, size_t size, char *file, int line)
 {
 #ifdef MEM_DEBUG
-    /* A sanity check */
-    if (*ptr != NULL && search_pointer(stack, ((char *)*ptr) - SIZE_SIGNATURE) != NULL)
-        debug(WARNING, " Pointer in use. Memory leak ahead\n", file, line);
+	/* A sanity check */
+	if (*ptr != NULL && search_pointer(stack, ((char *)*ptr) - SIZE_SIGNATURE) != NULL)
+		debug(WARNING, " Pointer in use. Memory leak ahead\n", file, line);
 
-    /* Get that memory! */
-    if ((*ptr = malloc(size + SIZE_SIGNATURE * 2)) != NULL) {
-        /* Register the variable in the stack */
-        if (stack->next == NULL)
-            ptr_last_var = add_pointer_to_stack(stack, *ptr, size, file, line);
-        else
-            /* Save the first pointer */
-            add_pointer_to_stack(stack, *ptr, size, file, line);
+	/* Get that memory! */
+	if ((*ptr = malloc(size + SIZE_SIGNATURE * 2)) != NULL) {
 
-        add_signature_to_variable(*ptr, size);
-        return ((char *)*ptr) + SIZE_SIGNATURE;
-    }
+		if (stack->next == NULL)
+			/* Register the variable in the stack */
+			ptr_last_var = add_pointer_to_stack(stack, *ptr, size, file, line);
+		else
+			/* Save the first pointer */
+			add_pointer_to_stack(stack, *ptr, size, file, line);
 
-    /* Ok, something went wrong */
-    debug(ERROR, " Memory exausted\n", file, line);
-    abort();
-    return NULL;
+		add_signature_to_variable(*ptr, size);
+		return ((char *)*ptr) + SIZE_SIGNATURE;
+	}
+
+	/* Ok, something went wrong */
+	debug(ERROR, " Memory exausted\n", file, line);
+	abort();
+	return NULL;
 #else
-    return malloc(size);
+	return malloc(size);
 #endif
 }
 
 void *__drealloc(void **ptr, size_t size, char *file, int line)
 {
 #ifdef MEM_DEBUG
-    void *tptr = NULL;
-    stack_variable *myvar = NULL;
+	void *tptr = NULL;
+	stack_variable *myvar = NULL;
 
-    /* If ptr is NULL and size is not 0, then is just plain malloc */
-    if (*ptr == NULL) {
-        if (size != 0)
-            return __dmalloc(ptr, size, file, line);
-        return NULL;
-    }
-    /* If size is 0, then, plain free */
-    else if (size == 0) {
-        __dfree(ptr, file, line);
-        return NULL;
-    }
+	/* If ptr is NULL and size is not 0, then is just plain malloc */
+	if (*ptr == NULL) {
+		if (size != 0)
+			return __dmalloc(ptr, size, file, line);
+		return NULL;
+	}
+	/* If size is 0, then, plain free */
+	else if (size == 0) {
+		__dfree(ptr, file, line);
+		return NULL;
+	}
 
-    /* ptr != NULL and size != 0. Classic realloc */
+	/* ptr != NULL and size != 0. Classic realloc */
 
-    /* If the pointer doesn't exists but he stills want that memory let's just give it to him */
-    if ((myvar = search_pointer(stack, ((char *)*ptr) - SIZE_SIGNATURE )) == NULL)
-        return __dmalloc(ptr, size, file, line);
+	/* If the pointer doesn't exists but he stills want that memory let's just give it to him */
+	if ((myvar = search_pointer(stack, ((char *)*ptr) - SIZE_SIGNATURE)) == NULL)
+		return __dmalloc(ptr, size, file, line);
 
-    /* It does exists in our stack, let's just increase it and leave */
-    if ((tptr = realloc(((char *)*ptr) - SIZE_SIGNATURE, size + SIZE_SIGNATURE * 2)) != NULL) {
-        /* Add the signature and update the stack information */
-        add_signature_to_variable(tptr, size);
-        myvar->size = size;
-        myvar->variable = tptr;
-        return ((char *)tptr) + SIZE_SIGNATURE;
-    }
+	/* It does exists in our stack, let's just increase it and leave */
+	if ((tptr = realloc(((char *)*ptr) - SIZE_SIGNATURE, size + SIZE_SIGNATURE * 2)) != NULL) {
+		/* Add the signature and update the stack information */
+		add_signature_to_variable(tptr, size);
+		myvar->size = size;
+		myvar->variable = tptr;
+		return ((char *)tptr) + SIZE_SIGNATURE;
+	}
 
-    /* Ok, something went wrong */
-    debug(ERROR, " Memory exausted\n", file, line);
-    abort();
-    return NULL;
+	/* Ok, something went wrong */
+	debug(ERROR, " Memory exausted\n", file, line);
+	abort();
+	return NULL;
 #else
-    return realloc(*ptr, size);
+	return realloc(*ptr, size);
 #endif
 }
 
 void *__dcalloc(void **ptr, size_t nmemb, size_t size, char *file, int line)
 {
 #ifdef MEM_DEBUG
-    stack_variable *myvar = NULL;
+	stack_variable *myvar = NULL;
 
-    /* A sanity check */
-    if (*ptr != NULL && search_pointer(stack, ((char *)*ptr) - SIZE_SIGNATURE) != NULL)
-        debug(WARNING, " Pointer in use. Memory leak ahead\n", file, line);
+	/* A sanity check */
+	if (*ptr != NULL && search_pointer(stack, ((char *)*ptr) - SIZE_SIGNATURE) != NULL)
+		debug(WARNING, " Pointer in use. Memory leak ahead\n", file, line);
 
-    /* Get that memory and blank it! */
-    if ((*ptr = calloc(nmemb + SIZE_SIGNATURE * 2, size)) != NULL) {
+	/* Get that memory and blank it! */
+	if ((*ptr = calloc(nmemb + SIZE_SIGNATURE * 2, size)) != NULL) {
 
-        /* Register the variable in the stack and put signature to it */
+		/* Register the variable in the stack and put signature to it */
 		ptr_last_var = add_pointer_to_stack(stack, *ptr, size, file, line);
-        add_signature_to_variable(*ptr, size);
-        return ((char *)*ptr) + SIZE_SIGNATURE;
-    }
+		add_signature_to_variable(*ptr, size);
+		return ((char *)*ptr) + SIZE_SIGNATURE;
+	}
 
-    /* Ok, something went wrong */
-    debug(ERROR, "Memory exausted\n", file, line);
-    abort();
-    return NULL;
+	/* Ok, something went wrong */
+	debug(ERROR, "Memory exausted\n", file, line);
+	abort();
+	return NULL;
 #else
-    return calloc(nmemb, size);
+	return calloc(nmemb, size);
 #endif
 }
 
 int __dfree(void **ptr, char *file, int line)
 {
 #ifdef MEM_DEBUG
-    stack_variable *myvar = NULL;
+	stack_variable *myvar = NULL;
 
-    /* If the pointer doesn't exists just leave, there's nothing to free */
-    if ((myvar = search_pointer(stack, ((char *)*ptr) - SIZE_SIGNATURE)) != NULL) {
-        /* Remove the variable from the stack and clean up the variable */
-        remove_pointer_from_stack(stack, myvar);
-        free(((char *)*ptr) - SIZE_SIGNATURE);
-        *ptr = NULL;
-        return 0;
-    }
-    debug(WARNING, " You can not free this variable, it was never reserved\n",
-          file, line);
-    return 1;
+	/* If the pointer doesn't exists just leave, there's nothing to free */
+	if ((myvar = search_pointer(stack, ((char *)*ptr) - SIZE_SIGNATURE)) != NULL) {
+
+		/* Remove the variable from the stack and clean up the variable */
+		remove_pointer_from_stack(stack, myvar);
+		free(((char *)*ptr) - SIZE_SIGNATURE);
+		*ptr = NULL;
+		return 0;
+	}
+	debug(WARNING, " You can not free this variable, it was never reserved\n", file, line);
+	return 1;
 #else
-    free(*ptr);
+	free(*ptr);
 #endif
 }
 
 void dmemory_init(int level)
 {
 #ifdef MEM_DEBUG
-    /* Initialize the debug level */
-    DEBUG_LEVEL = level;
+	/* Initialize the debug level */
+	DEBUG_LEVEL = level;
 
-    /* Initialize the stack */
-    stack = malloc(sizeof (stack_variable));
-    stack->next = stack->prev = stack->variable = NULL;
-    stack->size = -1;
+	/* Initialize the stack */
+	stack = malloc(sizeof(stack_variable));
+	stack->next = stack->prev = stack->variable = NULL;
+	stack->size = -1;
 #endif
 }
 
 int dmemory_end(void)
 {
 #ifdef MEM_DEBUG
-    char *filename;
-    stack_variable *ptr;
+	char *filename;
+	stack_variable *ptr;
 
-    /* Load the variable in the filename */
-    if ((filename = getenv(VAR_REPORT_FILENAME)) == NULL) {
-        debug(WARNING, " %s not defined, no report will be generated\n", "LIBRARY", 0, VAR_REPORT_FILENAME);
-        return 1;
-    }
+	/* Load the variable in the filename */
+	if ((filename = getenv(VAR_REPORT_FILENAME)) == NULL) {
+		debug(WARNING, " %s not defined, no report will be generated\n", "LIBRARY", 0, VAR_REPORT_FILENAME);
+		return 1;
+	}
 
-    /* Check if it was defined and not empty */
-    if (*filename == '\0') {
-        debug(WARNING, " %s defined but empty, no report will be generated\n", "LIBRARY", 0, VAR_REPORT_FILENAME);
-        return 1;
-    }
+	/* Check if it was defined and not empty */
+	if (*filename == '\0') {
+		debug(WARNING, " %s defined but empty, no report will be generated\n", "LIBRARY", 0, VAR_REPORT_FILENAME);
+		return 1;
+	}
 
-    /* Open the exceptions file */
-    if ((report = fopen(filename, "w")) == NULL) {
-        debug(WARNING, " opening %s", strerror(errno), errno, filename);
-        return 1;
-    }
+	/* Open the exceptions file */
+	if ((report = fopen(filename, "w")) == NULL) {
+		debug(WARNING, " opening %s", strerror(errno), errno, filename);
+		return 1;
+	}
 
-    /* Load the exceptions array */
-    __load_exceptions_file();
+	/* Load the exceptions array */
+	__load_exceptions_file();
 
-    /* We capture SIGSEV because CheckSignatures could break our program if
-     * there's actually a memory corruption by the user */
-    /* This should be changed in order of sigaction, since it is more polite */
-    signal(SIGSEGV, sigsegv_handler);
+	/* We capture SIGSEV because CheckSignatures could break our program if there's actually a memory corruption by the user */
+	/* This should be changed in order of sigaction, since it is more polite */
+	signal(SIGSEGV, sigsegv_handler);
 
-    /* For every variable in the stack */
-    /* We go from back to top in case he broke things up badley */
-    for (ptr = ptr_last_var;; ptr = ptr->prev) {
+	/* For every variable in the stack */
+	/* We go from back to top in case he broke things up badley */
+	for (ptr = ptr_last_var;; ptr = ptr->prev) {
 
-        /* This will help us in case he screw up the stack badley */
-        last_file_ok = ptr->filename;
-        last_line_ok = ptr->line;
-        last_checked = ptr->variable;
+		/* This will help us in case he screw up the stack badley */
+		last_file_ok = ptr->filename;
+		last_line_ok = ptr->line;
+		last_checked = ptr->variable;
 
-        /* Go cleaning the stack while moving through it */
-        free(ptr->next);
-        ptr->next = NULL;
+		/* Go cleaning the stack while moving through it */
+		free(ptr->next);
+		ptr->next = NULL;
 
-        if (ptr->variable != NULL) {
-            /* If it is not in the exception list add it to the report */
-            if (!__ExceptLeak(ptr->filename, ptr->line))
-                fprintf(report, "(L) [%s] [%d]\n", ptr->filename, ptr->line);
-            if (!CheckSignatures((void *)ptr->variable, (int)ptr->size))
-                fprintf(report, "(C) [%s] [%d]\n", ptr->filename, ptr->line);
-            free(ptr->filename);
-        }
-        if (ptr->prev == NULL)
-            break;
-    }
-	 /* Free the last one */
-    free(ptr->next);
+		if (ptr->variable != NULL) {
+			/* If it is not in the exception list add it to the report */
+			if (!__ExceptLeak(ptr->filename, ptr->line))
+				fprintf(report, "(L) [%s] [%d]\n", ptr->filename, ptr->line);
+			if (!CheckSignatures((void *)ptr->variable, (int)ptr->size))
+				fprintf(report, "(C) [%s] [%d]\n", ptr->filename, ptr->line);
+			free(ptr->filename);
+		}
+		if (ptr->prev == NULL)
+			break;
+	}
+	/* Free the last one */
+	free(ptr->next);
 
-	 /* Free the exceptions list */
-    __free_exceptions();
+	/* Free the exceptions list */
+	__free_exceptions();
 
-    fclose(report);
+	fclose(report);
 #endif
-
-    return 0;
+	return 0;
 }
 
 #endif

@@ -36,63 +36,63 @@
 
 int main(int argc, char *argv[])
 {
-    int *ptr = NULL;
-    int i, *x;
-    char *ss = (char *)&i;
+	int *ptr = NULL;
+	int i, *x;
+	char *ss = (char *)&i;
 
-    /* Initialice debug so full level is used */
-    dmemory_init(5);
+	/* Initialice the memory library and set to full debug */
+	dmemory_init(5);
 
-    /* ptr points to NULL, so xmalloc is sane */
-    ptr = xmalloc(ptr, sizeof(int) * 10);
+	/* ptr points to NULL, so xmalloc is sane */
+	ptr = xmalloc(ptr, sizeof(int) * 10);
 
-    /* Initialize the address space just created */
-    for (i = 0; i < 10; i++)
-        ptr[i] = i;
+	/* Initialize the address space just created */
+	for (i = 0; i < 10; i++)
+		ptr[i] = i;
 
-    /* since xmalloc didn't failed, xrealloc is a good choice */
-    ptr = xrealloc(ptr, 15 * sizeof(int));
+	/* since xmalloc didn't failed, xrealloc is a good choice */
+	ptr = xrealloc(ptr, 15 * sizeof(int));
 
-    /* Initialize the new address space */
-    for (i = 10; i < 15; i++)
-        ptr[i] = i;
+	/* Initialize the new address space */
+	for (i = 10; i < 15; i++)
+		ptr[i] = i;
 
-    /* Show it... you know, for the kids, they like I/O */
-    for (i = 0; i < 15; i++)
-        printf("%d: %d\n", i, ptr[i]);
-    /* We never call xfree on this one, to create a leak. */
+	/* Show it... you know, for the kids, they like I/O */
+	for (i = 0; i < 15; i++)
+		printf("%d: %d\n", i, ptr[i]);
+	/* We never call xfree on this one, to create a leak. */
 
 
-    /* Since ss points to 'i', but it wasn't malloc'ed this will not issue a 
-     * warning and will not be reported in the final report. */
-    ss = xmalloc(ss, sizeof(char) * 14);
-    /* In this case, xmalloc should be used as: xmalloc(NULL, sizeof(char)*14)
-     * or as: ss = NULL; ss = xmalloc(ss, sizeof(char)*14) to be more 
-     * consistent with the model, but don't worry, everything is handled */
+	/* Since ss points to 'i', but it wasn't malloc'ed this will not issue a 
+	 * warning and will not be reported in the final report. */
+	ss = xmalloc(ss, sizeof(char) * 14);
+	/* In this case, xmalloc should be used as: xmalloc(NULL, sizeof(char)*14) 
+	 * or as: ss = NULL; ss = xmalloc(ss, sizeof(char)*14) to be more 
+	 * consistent with the model, but don't worry, everything is handled */
 
-    sprintf(ss, "Very small leak");
-    puts(ss);
+	sprintf(ss, "Very small leak");
+	puts(ss);
 
-    /* Use xfree instead of free, xfree marks the pointer as "cleans" 
-     * (NULL), so xfree(ss); xfree(ss) will never fail. */
-    /* But on purpose of this demostration we comment it to create another 
-     * memory leak */
-    /* xfree(ss); */
+	/* Use xfree instead of free, xfree marks the pointer as "cleans" (NULL), 
+	 * so xfree(ss); xfree(ss) will never fail. */
+	/* But on purpose of this demostration we comment it to create another 
+	 * memory leak */
+	/* xfree(ss); */
 
-    /* If xfree was uncommented up there, ss would now points to NULL, so the 
-     * usage of xmalloc would be pretty straightforward and no warning would 
-     * be issued. But this is not the case, ss was malloc'ed but never freed, 
-     * so it remains registered in the library stack. So this should give us a 
-     * warning and it actually does reporting that it will lead us to a memory
-     * leak in the future */
-    ss = xmalloc(ss, sizeof(char) * 14);
-    sprintf(ss, "Dirty pointer and too big");
-    puts(ss);
+	/* If xfree was uncommented up there, ss would now points to NULL, so the 
+	 * usage of xmalloc would be pretty straightforward and no warning would 
+	 * be issued. But this is not the case, ss was malloc'ed but never freed, 
+	 * so it remains registered in the library stack. So this should give us 
+	 * a warning and it actually does reporting that it will lead us to a 
+	 * memory leak in the future */
+	ss = xmalloc(ss, sizeof(char) * 14);
+	sprintf(ss, "Dirty pointer and too big");
+	puts(ss);
 
-    /* This is on purpose to create another memory leak */
-    /*xfree(ss);*/
-    if (dmemory_end())
-        return 1;
+	/* This is on purpose to create another memory leak */
+	/* xfree(ss); */
+	if (dmemory_end())
+		return 1;
 
-    return 0;
+	return 0;
 }

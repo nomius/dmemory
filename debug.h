@@ -47,33 +47,18 @@ int DEBUG_LEVEL;
 /* #define NUMARGS(...) (sizeof((int *){0, ##__VA_ARGS__})/sizeof(int)-1) */
 
 /* A more compliant C89 vresion of derror */
-/* #define derror(file, line, fmt...) { \
-    if (NUMARGS(__VA_ARGS__) == 3) \
-        fprintf(stderr, "ERROR [%s:%d] " fmt, file, line); \
-    else \
-        fprintf(stderr, "ERROR [%s:%d] " fmt, file, line, ##__VA_ARGS__); \
-    fflush(NULL); \
-    exit(1); \
-} */
+/* #define derror(file, line, fmt...) { \ if (NUMARGS(__VA_ARGS__) == 3) \ fprintf(stderr, "ERROR [%s:%d] " fmt, file, line); \ else \ fprintf(stderr, "ERROR [%s:%d] " fmt, file, line, ##__VA_ARGS__); \ fflush(NULL); \ exit(1); \ } */
 
 #define derror(fmt, ...)  { fprintf(stderr, "ERROR [%s:%d] " fmt, __VA_ARGS__); fflush(NULL); exit(1); }
 
 /* A more compliant C89 vresion of debug */
-/* #define debug(LEVEL, file, line, fmt...) { \
-    if (LEVEL > DEBUG) { \
-        if(NUMARGS(__VA_ARGS__) == 4) \
-            fprintf(stderr, "DEBUG: [%s:%d]" fmt, file, line); \
-        else \
-            fprintf(stderr, "DEBUG: [%s:%d]" fmt, file, line, ##__VA_ARGS__); \
-    } \
-    fflush(NULL); \
-} */
+/* #define debug(LEVEL, file, line, fmt...) { \ if (LEVEL > DEBUG) { \ if(NUMARGS(__VA_ARGS__) == 4) \ fprintf(stderr, "DEBUG: [%s:%d]" fmt, file, line); \ else \ fprintf(stderr, "DEBUG: [%s:%d]" fmt, file, line, ##__VA_ARGS__); \ } \ fflush(NULL); \ } */
 
 #define debug(LEVEL, fmt, ...) { \
-    if (LEVEL > DEBUG) { \
-        fprintf(stderr, "DEBUG: [%s:%d] " fmt, __VA_ARGS__); \
-        fflush(NULL); \
-    } \
+	if (LEVEL > DEBUG) { \
+		fprintf(stderr, "DEBUG: [%s:%d] " fmt, __VA_ARGS__); \
+		fflush(NULL); \
+	} \
 }
 
 #else

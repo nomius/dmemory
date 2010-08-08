@@ -44,91 +44,91 @@
 /* This should be strnlen... THANKS GNU PEOPLE FOR SCREWING THE NAMESPACE! */
 static inline int max_strlen(const char *str, int maxlen)
 {
-    int i = 0;
+	int i = 0;
 
-    while (str[i] != '\0')
-        if (i == maxlen)
-            break;
-        else
-            i += 1;
-    return i;
+	while (str[i] != '\0')
+		if (i == maxlen)
+			break;
+		else
+			i += 1;
+	return i;
 }
 
 int __load_exceptions_file(void)
 {
-    char *filename = NULL;
-    FILE *FExceptions = NULL;
-    char tmpbuf[MAX_BUF];
-    char *itmp = NULL;
-    int line;
+	char *filename = NULL;
+	FILE *FExceptions = NULL;
+	char tmpbuf[MAX_BUF];
+	char *itmp = NULL;
+	int line;
 
-    NumExceptions = 0;
-    Exceptions = NULL;
+	NumExceptions = 0;
+	Exceptions = NULL;
 
-    /* Load the variable in the filename */
-    if ((filename = getenv(VAR_EXCEPTIONS_FILENAME)) == NULL) {
-        debug(WARNING, " %s not defined, no exceptions defined\n", "LIBRARY", 0, VAR_EXCEPTIONS_FILENAME);
-        return 1;
-    }
+	/* Load the variable in the filename */
+	if ((filename = getenv(VAR_EXCEPTIONS_FILENAME)) == NULL) {
+		debug(WARNING, " %s not defined, no exceptions defined\n", "LIBRARY", 0, VAR_EXCEPTIONS_FILENAME);
+		return 1;
+	}
 
-    /* Check if it was defined and not empty */
-    if (*filename == '\0') {
-        debug(WARNING, " %s defined but empty, no exceptions defined\n", "LIBRARY", 0, VAR_EXCEPTIONS_FILENAME);
-        return 1;
-    }
+	/* Check if it was defined and not empty */
+	if (*filename == '\0') {
+		debug(WARNING, " %s defined but empty, no exceptions defined\n", "LIBRARY", 0, VAR_EXCEPTIONS_FILENAME);
+		return 1;
+	}
 
-    /* Open the exceptions file */
-    if ((FExceptions = fopen(filename, "r")) == NULL) {
-        debug(WARNING, " opening %s\n", strerror(errno), errno, filename);
-        return 1;
-    }
+	/* Open the exceptions file */
+	if ((FExceptions = fopen(filename, "r")) == NULL) {
+		debug(WARNING, " opening %s\n", strerror(errno), errno, filename);
+		return 1;
+	}
 
-    /* Load the exceptions to an array */
-    while (fgets(tmpbuf, MAX_BUF, FExceptions) != NULL) {
+	/* Load the exceptions to an array */
+	while (fgets(tmpbuf, MAX_BUF, FExceptions) != NULL) {
 
-        /* Check if the user try to screw us with junk */
-        if (max_strlen(tmpbuf, MAX_BUF) == MAX_BUF) {
-            debug(WARNING, "Exception filename too large at line %d\n", "LIBRARY", 0, NumExceptions + 1);
-            continue;
-        }
-        /* Save space for one more */
-        Exceptions = realloc(Exceptions, sizeof (TExceptions) * (NumExceptions + 1));
+		/* Check if the user try to screw us with junk */
+		if (max_strlen(tmpbuf, MAX_BUF) == MAX_BUF) {
+			debug(WARNING, "Exception filename too large at line %d\n", "LIBRARY", 0, NumExceptions + 1);
+			continue;
+		}
+		/* Save space for one more */
+		Exceptions = realloc(Exceptions, sizeof(TExceptions) * (NumExceptions + 1));
 
-        /* If no field separator was given, then he wants the whole exception */
-        if ((itmp = strchr(tmpbuf, FIELD_SEPARATOR)) != NULL) {
-            Exceptions[NumExceptions].line = atoi(itmp + 1);
-            *itmp = '\0';
-        }
-        else
-            Exceptions[NumExceptions].line = -1;
-       	Exceptions[NumExceptions].filename = strdup(tmpbuf);
-        if ((itmp = strchr(Exceptions[NumExceptions].filename, '\n')) != NULL) 
-            *itmp = '\0';
+		/* If no field separator was given, then he wants the whole exception */
+		if ((itmp = strchr(tmpbuf, FIELD_SEPARATOR)) != NULL) {
+			Exceptions[NumExceptions].line = atoi(itmp + 1);
+			*itmp = '\0';
+		}
+		else
+			Exceptions[NumExceptions].line = -1;
+		Exceptions[NumExceptions].filename = strdup(tmpbuf);
+		if ((itmp = strchr(Exceptions[NumExceptions].filename, '\n')) != NULL)
+			*itmp = '\0';
 
-        NumExceptions += 1;
-    }
-    return 0;
+		NumExceptions += 1;
+	}
+	return 0;
 }
 
 int __ExceptLeak(char *filename, int line)
 {
-    int i = 0;
+	int i = 0;
 
-    /* Go through the Exceptions array and check it */
-    for (i = 0; i < NumExceptions; i++)
-        if (!strcmp(filename, Exceptions[i].filename) && (line == Exceptions[i].line || Exceptions[i].line == -1))
-            return 1;
-    return 0;
+	/* Go through the Exceptions array and check it */
+	for (i = 0; i < NumExceptions; i++)
+		if (!strcmp(filename, Exceptions[i].filename) && (line == Exceptions[i].line || Exceptions[i].line == -1))
+			return 1;
+	return 0;
 }
 
 void __free_exceptions(void)
 {
-    int i = 0;
+	int i = 0;
 
-    /* Go through the Exceptions array and free it */
-    for (i = 0; i < NumExceptions; i++)
-        free(Exceptions[NumExceptions].filename);
-    free(Exceptions);
+	/* Go through the Exceptions array and free it */
+	for (i = 0; i < NumExceptions; i++)
+		free(Exceptions[NumExceptions].filename);
+	free(Exceptions);
 }
 
 #endif

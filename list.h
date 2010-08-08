@@ -37,11 +37,11 @@
 #include <stdio.h>
 
 typedef struct _stack_variable {
-    struct _stack_variable *next, *prev;
-    size_t size;
-    char *filename;
-    int line;
-    void *variable;
+	struct _stack_variable *next, *prev;
+	size_t size;
+	char *filename;
+	int line;
+	void *variable;
 } stack_variable;
 
 int empty_stack(stack_variable * stack);

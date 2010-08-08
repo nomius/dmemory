@@ -39,8 +39,8 @@
 #define MAX_BUF 4096
 
 typedef struct _TExceptions {
-    char *filename;
-    int line;
+	char *filename;
+	int line;
 } TExceptions;
 
 TExceptions *Exceptions;
