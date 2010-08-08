@@ -67,19 +67,19 @@ int __load_exceptions_file(void)
 
 	/* Load the variable in the filename */
 	if ((filename = getenv(VAR_EXCEPTIONS_FILENAME)) == NULL) {
-		debug(WARNING, " %s not defined, no exceptions defined\n", "LIBRARY", 0, VAR_EXCEPTIONS_FILENAME);
+		debug(INFO, "%s not defined, no exceptions defined\n", "LIBRARY", 0, VAR_EXCEPTIONS_FILENAME);
 		return 1;
 	}
 
 	/* Check if it was defined and not empty */
 	if (*filename == '\0') {
-		debug(WARNING, " %s defined but empty, no exceptions defined\n", "LIBRARY", 0, VAR_EXCEPTIONS_FILENAME);
+		debug(INFO, "%s defined but empty, no exceptions defined\n", "LIBRARY", 0, VAR_EXCEPTIONS_FILENAME);
 		return 1;
 	}
 
 	/* Open the exceptions file */
 	if ((FExceptions = fopen(filename, "r")) == NULL) {
-		debug(WARNING, " opening %s\n", strerror(errno), errno, filename);
+		debug(INFO, "opening %s\n", strerror(errno), errno, filename);
 		return 1;
 	}
 
@@ -88,7 +88,7 @@ int __load_exceptions_file(void)
 
 		/* Check if the user try to screw us with junk */
 		if (max_strlen(tmpbuf, MAX_BUF) == MAX_BUF) {
-			debug(WARNING, "Exception filename too large at line %d\n", "LIBRARY", 0, NumExceptions + 1);
+			debug(INFO, "Exception filename too large at line %d\n", "LIBRARY", 0, NumExceptions + 1);
 			continue;
 		}
 		/* Save space for one more */
