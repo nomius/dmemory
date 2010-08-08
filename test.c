@@ -31,8 +31,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "dmemory.h"
 #include <stdio.h>
+#include "dmemory.h"
 
 int main(int argc, char *argv[])
 {
