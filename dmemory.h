@@ -37,27 +37,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define SIGNATURE "(D)(M).\0"
-#define SIZE_SIGNATURE ((int)(strlen(SIGNATURE)+1))
-#define VAR_REPORT_FILENAME "DMEMORY_REPORT"
-
-void *__xmalloc(void **ptr, size_t size, char *file, int line);
-void *__xcalloc(void **ptr, size_t nmemb, size_t size, char *file, int line);
-void *__xrealloc(void **ptr, size_t size, char *file, int line);
-int __xfree(void **ptr, char *file, int line);
+void *__xmalloc(size_t size, char *file, int line);
+void *__xcalloc(size_t nmemb, size_t size, char *file, int line);
+void *__xrealloc(void *ptr, size_t size, char *file, int line);
+int __xfree(void *ptr, char *file, int line);
 void memory_init(int level);
 int memory_end(void);
 
-#ifdef C89
-#define dmalloc(ptr, size) ((typeof(ptr)) __xmalloc((void **)&(ptr), (size), (char *)__FILE__, __LINE__))
-#define dcalloc(ptr, nmemb, size) ((typeof(ptr)) __xcalloc((void **)&(ptr), (nmemb), (size), (char *)__FILE__, __LINE__))
-#define drealloc(ptr, size) ((typeof(ptr)) __xrealloc((void **)&(ptr), (size), (char *)__FILE__, __LINE__))
-#define dfree(ptr) __xfree((void **)&(ptr), (char *)__FILE__, __LINE__)
-#elif C99
-#define dmalloc(ptr, size) __xmalloc((void **)&(ptr), (size), (char *)__FILE__, __LINE__)
-#define dcalloc(ptr, nmemb, size) __xcalloc((void **)&(ptr), (nmemb), (size), (char *)__FILE__, __LINE__)
-#define drealloc(ptr, size) __xrealloc((void **)&(ptr), (size), (char *)__FILE__, __LINE__)
-#define dfree(ptr) __xfree((void **)&(ptr), (char *)__FILE__, __LINE__)
-#endif
+#define malloc(size) __xmalloc((size), (char *)__FILE__, __LINE__)
+#define calloc(nmemb, size) __xcalloc((nmemb), (size), (char *)__FILE__, __LINE__)
+#define realloc(ptr, size) __xrealloc((ptr), (size), (char *)__FILE__, __LINE__)
+#define free(ptr) __xfree((ptr), (char *)__FILE__, __LINE__)
 
 #endif

@@ -40,57 +40,53 @@ int main(int argc, char *argv[])
 	int i, *x;
 	char *ss = (char *)&i;
 
-	/* Initialice the memory library and set to full debug */
-	dmemory_init(5);
+	/* Initialice the memory library and set to full debug. */
+	dmemory_init(2);
 
-	/* ptr points to NULL, so dmalloc is sane */
-	ptr = dmalloc(ptr, sizeof(int) * 10);
+	/* Let's ask for some memory with calloc. */
+	ptr = calloc(10, sizeof(int));
 
-	/* Initialize the address space just created */
+	/* Initialize the address space just created. */
 	for (i = 0; i < 10; i++)
 		ptr[i] = i;
 
-	/* since dmalloc didn't failed, drealloc is a good choice */
-	ptr = drealloc(ptr, 15 * sizeof(int));
+	/* Since calloc didn't failed, realloc is sane. */
+	ptr = realloc(ptr, 15 * sizeof(int));
 
-	/* Initialize the new address space */
-	for (i = 10; i < 15; i++)
+	/* Initialize the new address space with a small a memory corruption. */
+	for (i = 10; i <= 15; i++)
 		ptr[i] = i;
 
-	/* Show it... you know, for the kids, they like I/O */
+	/* Show it... you know, for the kids, they like I/O. */
 	for (i = 0; i < 15; i++)
 		printf("%d: %d\n", i, ptr[i]);
-	/* We never call dfree on this one, to create a leak. */
-
+	/* We never call free on this one, to create a leak. */
 
 	/* Since ss points to 'i', but it wasn't malloc'ed this will not issue a 
-	 * warning and will not be reported in the final report. */
-	ss = dmalloc(ss, sizeof(char) * 14);
-	/* In this case, dmalloc should be used as: dmalloc(NULL, sizeof(char)*14) 
-	 * or as: ss = NULL; ss = dmalloc(ss, sizeof(char)*14) to be more 
-	 * consistent with the model, but don't worry, everything is handled */
-
-	sprintf(ss, "Very small leak");
+	 * warning and will not be reported in the final report. So the usage of 
+	 * malloc is pretty straightforward. */
+	ss = malloc(sizeof(char) * 14);
+	sprintf(ss, "Hello world!");
 	puts(ss);
+	/* Let's not create a memory leak out of this so it's not shown in the 
+	 * final report. */
+	free(ss);
+	/* Let's create a "double free" known error on this one */
+	free(ss);
 
-	/* Use dfree instead of free, dfree marks the pointer as "cleans" (NULL), 
-	 * so dfree(ss); dfree(ss) will never fail. */
-	/* But on purpose of this demostration we comment it to create another 
-	 * memory leak */
-	/* dfree(ss); */
-
-	/* If dfree was uncommented up there, ss would now points to NULL, so the 
-	 * usage of dmalloc would be pretty straightforward and no warning would 
-	 * be issued. But this is not the case, ss was malloc'ed but never freed, 
-	 * so it remains registered in the library stack. So this should give us 
-	 * a warning and it actually does reporting that it will lead us to a 
-	 * memory leak in the future */
-	ss = dmalloc(ss, sizeof(char) * 14);
+	ss = malloc(sizeof(char) * 14);
 	sprintf(ss, "Dirty pointer and too big");
 	puts(ss);
+	/* free(ss); */
+	/* If free was uncommented up there everything would be fine.  But this 
+	 * is not the case, ss was malloc'ed but never freed, so it remains 
+	 * registered in the library stack. */
 
-	/* This is on purpose to create another memory leak */
-	/* dfree(ss); */
+	free((void *)0x123);
+	/* On purpose of this demostration we free a memory address that was 
+	 * never reserved, so this normally should lead us to a BUS ERROR 
+	 * (SIGBUS). But now this is handled */
+
 	if (dmemory_end())
 		return 1;
 
