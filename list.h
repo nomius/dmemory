@@ -39,6 +39,7 @@
 typedef struct _stack_variable {
 	struct _stack_variable *next, *prev;
 	size_t size;
+	int df;
 	char *filename;
 	int line;
 	void *variable;

@@ -39,7 +39,7 @@
 #include "list.h"
 
 /* This function is a classic ;-) */
-int empty_stack(stack_variable * stack)
+int empty_stack(stack_variable *stack)
 {
 	if (stack->next == NULL)
 		return 1;
@@ -47,11 +47,14 @@ int empty_stack(stack_variable * stack)
 }
 
 /* Check the whole stack looking up for a certain pointer */
-stack_variable *search_pointer(stack_variable * stack, void *addr)
+stack_variable *search_pointer(stack_variable *stack, void *addr)
 {
 	stack_variable *ptr;
 
 	for (ptr = stack;; ptr = ptr->next) {
+		/* Jump double free */
+		if (ptr->df)
+			continue;
 		if (ptr->variable == addr)
 			return ptr;
 		if (ptr->next == NULL)
@@ -61,7 +64,7 @@ stack_variable *search_pointer(stack_variable * stack, void *addr)
 }
 
 /* Save a pointer in the stack */
-stack_variable *add_pointer_to_stack(stack_variable * stack, void *addr, size_t size, char *file, int line)
+stack_variable *add_pointer_to_stack(stack_variable *stack, void *addr, size_t size, char *file, int line)
 {
 	stack_variable *myvar = NULL;
 
@@ -77,6 +80,7 @@ stack_variable *add_pointer_to_stack(stack_variable * stack, void *addr, size_t 
 	myvar->size = size;
 	myvar->filename = strdup(file);
 	myvar->line = line;
+	myvar->df = 0;
 	return myvar;
 }
 
