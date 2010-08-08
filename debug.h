@@ -36,33 +36,37 @@
 
 int DEBUG_LEVEL;
 
-#define DEBUG 1
-
-#define WARNING 5
 #define ERROR 1
+#define WARNING 2
+#define INFO 4
 
+static const char *ERROR_MESSAGES[] = { "ERROR", "WARNING", "INFO" };
 
-#if DEBUG
+#if MEM_DEBUG
 /* This function calculate how many variable arguments were passed */
 /* #define NUMARGS(...) (sizeof((int *){0, ##__VA_ARGS__})/sizeof(int)-1) */
-
-/* A more compliant C89 vresion of derror */
-/* #define derror(file, line, fmt...) { \ if (NUMARGS(__VA_ARGS__) == 3) \ fprintf(stderr, "ERROR [%s:%d] " fmt, file, line); \ else \ fprintf(stderr, "ERROR [%s:%d] " fmt, file, line, ##__VA_ARGS__); \ fflush(NULL); \ exit(1); \ } */
-
-#define derror(fmt, ...)  { fprintf(stderr, "ERROR [%s:%d] " fmt, __VA_ARGS__); fflush(NULL); exit(1); }
 
 /* A more compliant C89 vresion of debug */
 /* #define debug(LEVEL, file, line, fmt...) { \ if (LEVEL > DEBUG) { \ if(NUMARGS(__VA_ARGS__) == 4) \ fprintf(stderr, "DEBUG: [%s:%d]" fmt, file, line); \ else \ fprintf(stderr, "DEBUG: [%s:%d]" fmt, file, line, ##__VA_ARGS__); \ } \ fflush(NULL); \ } */
 
 #define debug(LEVEL, fmt, ...) { \
-	if (LEVEL > DEBUG) { \
-		fprintf(stderr, "DEBUG: [%s:%d] " fmt, __VA_ARGS__); \
+	if (LEVEL <= DEBUG_LEVEL) { \
+		switch(LEVEL) { \
+			case 1: \
+					fprintf(stderr, "ERROR: [%s:%d] " fmt, __VA_ARGS__); \
+					break; \
+			case 2: \
+					fprintf(stderr, "WARNING: [%s:%d] " fmt, __VA_ARGS__); \
+					break; \
+			case 4: \
+					fprintf(stderr, "INFO: [%s:%d] " fmt, __VA_ARGS__); \
+					break; \
+		} \
 		fflush(NULL); \
 	} \
 }
 
 #else
-#define derror(...)
 #define debug(...)
 #endif
 

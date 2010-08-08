@@ -204,7 +204,7 @@ int __xfree(void *ptr, char *file, int line)
 	}
 	myvar = add_pointer_to_stack(stack, ptr, 0, file, line);
 	myvar->df = 1;
-/*	debug(WARNING, "You can not free this variable, as it was never reserved\n", file, line);*/
+	debug(WARNING, "You can not free this variable, as it was never reserved\n", file, line);
 	return 1;
 #else
 	free(ptr);
