@@ -273,6 +273,7 @@ int dmemory_end(void)
 			/* If it is not in the exception list add it to the report */
 			if (ptr->df) {
 				fprintf(report, "(F) [%s] [%d] (address: 0x%0.12x)\n", ptr->filename, ptr->line, ((char *)ptr->variable) + SIZE_SIGNATURE);
+				free(ptr->filename);
 				continue;
 			}
 			if (!__ExceptLeak(ptr->filename, ptr->line))
