@@ -203,6 +203,7 @@ int __dfree(void **ptr, char *file, int line)
 #else
 	free(*ptr);
 #endif
+	return 0;
 }
 
 void dmemory_init(int level)
