@@ -43,15 +43,15 @@ int main(int argc, char *argv[])
 	/* Initialice the memory library and set to full debug */
 	dmemory_init(5);
 
-	/* ptr points to NULL, so xmalloc is sane */
-	ptr = xmalloc(ptr, sizeof(int) * 10);
+	/* ptr points to NULL, so dmalloc is sane */
+	ptr = dmalloc(ptr, sizeof(int) * 10);
 
 	/* Initialize the address space just created */
 	for (i = 0; i < 10; i++)
 		ptr[i] = i;
 
-	/* since xmalloc didn't failed, xrealloc is a good choice */
-	ptr = xrealloc(ptr, 15 * sizeof(int));
+	/* since dmalloc didn't failed, drealloc is a good choice */
+	ptr = drealloc(ptr, 15 * sizeof(int));
 
 	/* Initialize the new address space */
 	for (i = 10; i < 15; i++)
@@ -60,37 +60,37 @@ int main(int argc, char *argv[])
 	/* Show it... you know, for the kids, they like I/O */
 	for (i = 0; i < 15; i++)
 		printf("%d: %d\n", i, ptr[i]);
-	/* We never call xfree on this one, to create a leak. */
+	/* We never call dfree on this one, to create a leak. */
 
 
 	/* Since ss points to 'i', but it wasn't malloc'ed this will not issue a 
 	 * warning and will not be reported in the final report. */
-	ss = xmalloc(ss, sizeof(char) * 14);
-	/* In this case, xmalloc should be used as: xmalloc(NULL, sizeof(char)*14) 
-	 * or as: ss = NULL; ss = xmalloc(ss, sizeof(char)*14) to be more 
+	ss = dmalloc(ss, sizeof(char) * 14);
+	/* In this case, dmalloc should be used as: dmalloc(NULL, sizeof(char)*14) 
+	 * or as: ss = NULL; ss = dmalloc(ss, sizeof(char)*14) to be more 
 	 * consistent with the model, but don't worry, everything is handled */
 
 	sprintf(ss, "Very small leak");
 	puts(ss);
 
-	/* Use xfree instead of free, xfree marks the pointer as "cleans" (NULL), 
-	 * so xfree(ss); xfree(ss) will never fail. */
+	/* Use dfree instead of free, dfree marks the pointer as "cleans" (NULL), 
+	 * so dfree(ss); dfree(ss) will never fail. */
 	/* But on purpose of this demostration we comment it to create another 
 	 * memory leak */
-	/* xfree(ss); */
+	/* dfree(ss); */
 
-	/* If xfree was uncommented up there, ss would now points to NULL, so the 
-	 * usage of xmalloc would be pretty straightforward and no warning would 
+	/* If dfree was uncommented up there, ss would now points to NULL, so the 
+	 * usage of dmalloc would be pretty straightforward and no warning would 
 	 * be issued. But this is not the case, ss was malloc'ed but never freed, 
 	 * so it remains registered in the library stack. So this should give us 
 	 * a warning and it actually does reporting that it will lead us to a 
 	 * memory leak in the future */
-	ss = xmalloc(ss, sizeof(char) * 14);
+	ss = dmalloc(ss, sizeof(char) * 14);
 	sprintf(ss, "Dirty pointer and too big");
 	puts(ss);
 
 	/* This is on purpose to create another memory leak */
-	/* xfree(ss); */
+	/* dfree(ss); */
 	if (dmemory_end())
 		return 1;
 
