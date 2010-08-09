@@ -175,7 +175,13 @@ void *__xcalloc(size_t nmemb, size_t size, char *file, int line)
 	if ((ptr = malloc(tot + SIZE_SIGNATURE * 2)) != NULL) {
 		memset(ptr, '\0', tot + SIZE_SIGNATURE * 2);
 		/* Register the variable in the stack and put signature to it */
-		ptr_last_var = add_pointer_to_stack(stack, ptr, tot, file, line);
+		if (stack->next == NULL)
+			/* Register the variable in the stack */
+			ptr_last_var = add_pointer_to_stack(stack, ptr, tot, file, line);
+		else
+			/* Save the first pointer */
+			add_pointer_to_stack(stack, ptr, tot, file, line);
+
 		add_signature_to_variable(ptr, tot);
 		return ((char *)ptr) + SIZE_SIGNATURE;
 	}
@@ -202,7 +208,13 @@ int __xfree(void *ptr, char *file, int line)
 		free(((char *)ptr) - SIZE_SIGNATURE);
 		return 0;
 	}
-	myvar = add_pointer_to_stack(stack, ptr, 0, file, line);
+	if (stack->next == NULL)
+		/* Register the variable in the stack */
+		myvar = ptr_last_var = add_pointer_to_stack(stack, ptr, 0, file, line);
+	else
+		/* Save the first pointer */
+		myvar = add_pointer_to_stack(stack, ptr, 0, file, line);
+
 	myvar->df = 1;
 	debug(WARNING, "You can not free this variable, as it was never reserved\n", file, line);
 	return 1;
@@ -222,6 +234,7 @@ void dmemory_init(int level)
 	stack = malloc(sizeof(stack_variable));
 	stack->next = stack->prev = stack->variable = NULL;
 	stack->size = -1;
+	ptr_last_var = NULL;
 #endif
 }
 
