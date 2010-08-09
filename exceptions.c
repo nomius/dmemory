@@ -67,7 +67,7 @@ int __load_exceptions_file(void)
 
 	/* Load the variable in the filename */
 	if ((filename = getenv(VAR_EXCEPTIONS_FILENAME)) == NULL) {
-		debug(INFO, "%s not defined, no exceptions defined\n", "LIBRARY", 0, VAR_EXCEPTIONS_FILENAME);
+		debug(INFO, "%s not defined, no exceptions will be used\n", "LIBRARY", 0, VAR_EXCEPTIONS_FILENAME);
 		return 1;
 	}
 
