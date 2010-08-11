@@ -40,8 +40,6 @@
 #define WARNING 2
 #define INFO 4
 
-static const char *ERROR_MESSAGES[] = { "ERROR", "WARNING", "INFO" };
-
 #if MEM_DEBUG
 /* This function calculate how many variable arguments were passed */
 /* #define NUMARGS(...) (sizeof((int *){0, ##__VA_ARGS__})/sizeof(int)-1) */
