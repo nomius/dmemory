@@ -42,6 +42,7 @@ int main(int argc, char *argv[])
 
 	/* Initialice the memory library and set to full debug. */
 	dmemory_init(2);
+	dmemory_init(-1);
 
 	/* Let's ask for some memory with calloc. */
 	ptr = calloc(10, sizeof(int));
