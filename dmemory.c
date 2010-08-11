@@ -52,7 +52,7 @@ int __DMEMORY_DEBUG_LEVEL = -1;
 static void add_signature_to_variable(void *ptr, size_t size);
 static int CheckSignatures(void *ptr, size_t size);
 
-static stack_variable *stack;
+static stack_variable *stack = NULL;;
 
 static stack_variable *ptr_last_var;
 static void *last_checked;
@@ -246,17 +246,22 @@ int __xfree(void *ptr, char *file, int line)
 	return 0;
 }
 
-void dmemory_init(int level)
+void __dmemory_init(int level, char *file, int line)
 {
 #ifdef MEM_DEBUG
-	/* Initialize the debug level */
-	__DMEMORY_DEBUG_LEVEL = level;
-
 	/* Initialize the stack */
-	stack = malloc(sizeof(stack_variable));
-	stack->next = stack->prev = stack->variable = NULL;
-	stack->size = -1;
-	ptr_last_var = NULL;
+	if (!stack) {
+		/* Initialize the debug level */
+		__DMEMORY_DEBUG_LEVEL = level;
+
+		/* Initialize the stack */
+		stack = malloc(sizeof(stack_variable));
+		stack->next = stack->prev = stack->variable = NULL;
+		stack->size = -1;
+		ptr_last_var = NULL;
+	}
+	else
+		debug(WARNING, "You can not re-initialize dmemory twice\n", file, line);
 #endif
 }
 

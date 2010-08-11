@@ -48,5 +48,6 @@ int memory_end(void);
 #define calloc(nmemb, size) __xcalloc((nmemb), (size), (char *)__FILE__, __LINE__)
 #define realloc(ptr, size) __xrealloc((ptr), (size), (char *)__FILE__, __LINE__)
 #define free(ptr) __xfree((ptr), (char *)__FILE__, __LINE__)
+#define dmemory_init(level)  __dmemory_init(level, (char *)__FILE__, __LINE__)
 
 #endif
