@@ -41,6 +41,8 @@
 #include "exceptions.h"
 #include "debug.h"
 
+extern int __DMEMORY_DEBUG_LEVEL;
+
 /* This should be strnlen... THANKS GNU PEOPLE FOR SCREWING THE NAMESPACE! */
 static inline int max_strlen(const char *str, int maxlen)
 {
