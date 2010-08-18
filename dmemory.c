@@ -61,7 +61,7 @@ static int last_line_ok;
 
 static FILE *report;
 
-void sigsegv_handler(int sig)
+void __dmemory_sigsegv_handler(int sig)
 {
 	/* This will happen in case he screw up the stack badley */
 	fprintf(report, "There's a major corruption at 0x%0.12x right after %s at %d.\n", last_checked, last_file_ok, last_line_ok);
@@ -221,21 +221,31 @@ int __xfree(void *ptr, char *file, int line)
 		/* If the pointer doesn't exists just leave, there's nothing to free */
 		if ((myvar = search_pointer(stack, ((char *)ptr) - SIZE_SIGNATURE)) != NULL) {
 
-			/* Remove the variable from the stack and clean up the variable */
-			remove_pointer_from_stack(stack, myvar);
+			/* Check if there was a memory corruption before deleting it */
+			if (!CheckSignatures((void *)myvar->variable, (int)myvar->size))
+				/* Hey oh! What happened here? Let's save that information for latter */
+				myvar->df = 2;
+			else 
+				/* Everything went fine. Remove the variable from the stack */
+				remove_pointer_from_stack(stack, myvar);
+
+			/* Clean up the mess */
 			free(((char *)ptr) - SIZE_SIGNATURE);
 			return 0;
 		}
 		if (stack->next == NULL)
 			/* Register the variable in the stack */
 			myvar = ptr_last_var = add_pointer_to_stack(stack, ptr, 0, file, line);
+
 		else
 			/* Save the first pointer */
 			myvar = add_pointer_to_stack(stack, ptr, 0, file, line);
 
+		/* Mark it as a double free */
 		myvar->df = 1;
 		debug(WARNING, "You can not free this variable, as it was never reserved\n", file, line);
 		return 1;
+				
 	}
 	else {
 		;
@@ -253,6 +263,10 @@ void __dmemory_init(int level, char *file, int line)
 	if (!stack) {
 		/* Initialize the debug level */
 		__DMEMORY_DEBUG_LEVEL = level;
+
+		/* We capture SIGSEV because there could be a memory corruption by the user somewhere */
+		/* TODO: This should be changed in order of sigaction, since it is more polite */
+		signal(SIGSEGV, __dmemory_sigsegv_handler);
 
 		/* Initialize the stack */
 		stack = malloc(sizeof(stack_variable));
@@ -293,11 +307,7 @@ int dmemory_end(void)
 		/* Load the exceptions array */
 		__load_exceptions_file();
 
-		/* We capture SIGSEV because CheckSignatures could break our program if there's actually a memory corruption by the user */
-		/* This should be changed in order of sigaction, since it is more polite */
-		signal(SIGSEGV, sigsegv_handler);
-
-		/* For every variable in the stack */
+		/* For every variable in the stack let's see what the user left */
 		/* We go from back to top in case he broke things up badley */
 		for (ptr = ptr_last_var;; ptr = ptr->prev) {
 
@@ -312,8 +322,13 @@ int dmemory_end(void)
 
 			if (ptr->variable != NULL || ptr->df) {
 				/* If it is not in the exception list add it to the report */
-				if (ptr->df) {
+				if (ptr->df == 1) {
 					fprintf(report, "(F) [%s] [%d] (address: 0x%0.12x)\n", ptr->filename, ptr->line, ((char *)ptr->variable) + SIZE_SIGNATURE);
+					free(ptr->filename);
+					continue;
+				}
+				if (ptr->df == 2) {
+					fprintf(report, "(C) [%s] [%d] (address: 0x%0.12x)\n", ptr->filename, ptr->line, ((char *)ptr->variable) + SIZE_SIGNATURE);
 					free(ptr->filename);
 					continue;
 				}
