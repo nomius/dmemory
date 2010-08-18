@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 	/* Since ss points to 'i', but it wasn't malloc'ed this will not issue a 
 	 * warning and will not be reported in the final report. So the usage of 
 	 * malloc is pretty straightforward. */
-	ss = malloc(sizeof(char) * 14);
+	ss = malloc(sizeof(char) * 10);
 	sprintf(ss, "Hello world!");
 	puts(ss);
 	/* Let's not create a memory leak out of this so it's not shown in the 
