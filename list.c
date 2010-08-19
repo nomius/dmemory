@@ -52,7 +52,7 @@ stack_variable *search_pointer(stack_variable *stack, void *addr)
 	stack_variable *ptr;
 
 	for (ptr = stack;; ptr = ptr->next) {
-		/* Jump double free */
+		/* Jump freed memory */
 		if (ptr->df)
 			continue;
 		if (ptr->variable == addr)

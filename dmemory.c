@@ -85,8 +85,8 @@ static int CheckSignatures(void *ptr, size_t size)
 {
 	char *tmp = (char *)ptr;
 
-	/* Check the signature in the beginning and the end */
-	if (!memcmp(tmp, SIGNATURE, SIZE_SIGNATURE)	&& !memcmp(tmp + SIZE_SIGNATURE + size, SIGNATURE, SIZE_SIGNATURE))
+	/* Check the signature in the beginning and in the end */
+	if (!memcmp(tmp, SIGNATURE, SIZE_SIGNATURE) && !memcmp(tmp + SIZE_SIGNATURE + size, SIGNATURE, SIZE_SIGNATURE))
 		return 1;
 
 	return 0;
@@ -98,6 +98,7 @@ void *__xmalloc(size_t size, char *file, int line)
 	void *ptr = NULL;
 
 	if (__DMEMORY_DEBUG_LEVEL != -1) {
+
 		/* Get that memory! */
 		if ((ptr = malloc(size + SIZE_SIGNATURE * 2)) != NULL) {
 
@@ -132,12 +133,14 @@ void *__xrealloc(void *ptr, size_t size, char *file, int line)
 	stack_variable *myvar = NULL;
 
 	if (__DMEMORY_DEBUG_LEVEL != -1) {
+
 		/* If ptr is NULL and size is not 0, then is just plain malloc */
 		if (ptr == NULL) {
 			if (size != 0)
 				return __xmalloc(size, file, line);
 			return NULL;
 		}
+
 		/* If size is 0, then, plain free */
 		else if (size == 0) {
 			__xfree(ptr, file, line);
@@ -152,6 +155,7 @@ void *__xrealloc(void *ptr, size_t size, char *file, int line)
 
 		/* It does exists in our stack, let's just increase it and leave */
 		if ((tptr = realloc(((char *)ptr) - SIZE_SIGNATURE, size + SIZE_SIGNATURE * 2)) != NULL) {
+
 			/* Add the signature and update the stack information */
 			add_signature_to_variable(tptr, size);
 			myvar->size = size;
@@ -180,13 +184,15 @@ void *__xcalloc(size_t nmemb, size_t size, char *file, int line)
 	size_t tot = nmemb*size;
 
 	if (__DMEMORY_DEBUG_LEVEL != -1) {
+
 		/* Get that memory and blank it! */
 		if (nmemb == 0)
 			return NULL;
 
-		/* We get the memory with malloc and then clean it */
+		/* We get the memory with malloc and then clean it, sorry, can't figure how to do it with real calloc */
 		if ((ptr = malloc(tot + SIZE_SIGNATURE * 2)) != NULL) {
 			memset(ptr, '\0', tot + SIZE_SIGNATURE * 2);
+
 			/* Register the variable in the stack and put signature to it */
 			if (stack->next == NULL)
 				/* Register the variable in the stack */
@@ -218,6 +224,7 @@ int __xfree(void *ptr, char *file, int line)
 	stack_variable *myvar = NULL;
 
 	if (__DMEMORY_DEBUG_LEVEL != -1) {
+
 		/* If the pointer doesn't exists just leave, there's nothing to free */
 		if ((myvar = search_pointer(stack, ((char *)ptr) - SIZE_SIGNATURE)) != NULL) {
 
@@ -236,7 +243,6 @@ int __xfree(void *ptr, char *file, int line)
 		if (stack->next == NULL)
 			/* Register the variable in the stack */
 			myvar = ptr_last_var = add_pointer_to_stack(stack, ptr, 0, file, line);
-
 		else
 			/* Save the first pointer */
 			myvar = add_pointer_to_stack(stack, ptr, 0, file, line);
@@ -321,23 +327,34 @@ int dmemory_end(void)
 			ptr->next = NULL;
 
 			if (ptr->variable != NULL || ptr->df) {
-				/* If it is not in the exception list add it to the report */
+
+				/* If it was a double free, show it in the report */
 				if (ptr->df == 1) {
 					fprintf(report, "(F) [%s] [%d] (address: 0x%0.12x)\n", ptr->filename, ptr->line, ((char *)ptr->variable) + SIZE_SIGNATURE);
 					free(ptr->filename);
 					continue;
 				}
+
+				/* If it was a memory corruption from a freed memory space, show it in the report */
 				if (ptr->df == 2) {
 					fprintf(report, "(C) [%s] [%d] (address: 0x%0.12x)\n", ptr->filename, ptr->line, ((char *)ptr->variable) + SIZE_SIGNATURE);
 					free(ptr->filename);
 					continue;
 				}
+
+				/* If it is not in the exception list, show it in the report */
 				if (!__ExceptLeak(ptr->filename, ptr->line))
 					fprintf(report, "(L) [%s] [%d] (address: 0x%0.12x)\n", ptr->filename, ptr->line, ((char *)ptr->variable) + SIZE_SIGNATURE);
+
+				/* If it was corrupted and never freed either, show it in the report */
 				if (!CheckSignatures((void *)ptr->variable, (int)ptr->size))
 					fprintf(report, "(C) [%s] [%d] (address: 0x%0.12x)\n", ptr->filename, ptr->line, ((char *)ptr->variable) + SIZE_SIGNATURE);
+
+				/* Release the filename saved in the stack */
 				free(ptr->filename);
 			}
+
+			/* Enough, it's over */
 			if (ptr->prev == NULL)
 				break;
 		}
