@@ -59,13 +59,38 @@ static void *last_checked;
 static char *last_file_ok;
 static int last_line_ok;
 
-static FILE *report;
+static FILE *report = NULL;
 
 void __dmemory_sigsegv_handler(int sig)
 {
+	char *filename;
+
 	/* This will happen in case he screw up the stack badley */
+	if (!report) {
+
+		/* Load the variable in the filename */
+		if ((filename = getenv(VAR_REPORT_FILENAME)) == NULL) {
+			debug(INFO, "%s not defined, no report will be generated\n", "LIBRARY", 0, VAR_REPORT_FILENAME);
+			exit(1);
+		}
+
+		/* Check if it was defined and not empty */
+		if (*filename == '\0') {
+			debug(INFO, " %s defined but empty, no report will be generated\n", "LIBRARY", 0, VAR_REPORT_FILENAME);
+			exit(1);
+		}
+
+		/* Open the exceptions file */
+		if ((report = fopen(filename, "w")) == NULL) {
+			debug(INFO, " opening %s", strerror(errno), errno, filename);
+			exit(1);
+		}
+	}
+
+	/* Write the info. Sorry, this is all you get! */
 	fprintf(report, "There's a major corruption at 0x%0.12x right after %s at %d.\n", last_checked, last_file_ok, last_line_ok);
 	fprintf(report, "This normally means that you really screwed things up.\n");
+
 	fclose(report);
 	exit(1);
 }
