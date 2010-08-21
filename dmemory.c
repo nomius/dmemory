@@ -61,6 +61,8 @@ static int last_line_ok;
 
 static FILE *report = NULL;
 
+static struct sigaction old_state, new_state;
+
 void __dmemory_sigsegv_handler(int sig)
 {
 	char *filename;
@@ -71,19 +73,19 @@ void __dmemory_sigsegv_handler(int sig)
 		/* Load the variable in the filename */
 		if ((filename = getenv(VAR_REPORT_FILENAME)) == NULL) {
 			debug(INFO, "%s not defined, no report will be generated\n", "LIBRARY", 0, VAR_REPORT_FILENAME);
-			exit(1);
+			goto err_report;
 		}
 
 		/* Check if it was defined and not empty */
 		if (*filename == '\0') {
 			debug(INFO, " %s defined but empty, no report will be generated\n", "LIBRARY", 0, VAR_REPORT_FILENAME);
-			exit(1);
+			goto err_report;
 		}
 
 		/* Open the exceptions file */
 		if ((report = fopen(filename, "w")) == NULL) {
 			debug(INFO, " opening %s", strerror(errno), errno, filename);
-			exit(1);
+			goto err_report;
 		}
 	}
 
@@ -92,7 +94,12 @@ void __dmemory_sigsegv_handler(int sig)
 	fprintf(report, "This normally means that you really screwed things up.\n");
 
 	fclose(report);
-	exit(1);
+
+err_report:
+	/* Resume at the instruction that faulted originally, which presumably will fault again */
+	if (sigaction(SIGSEGV, &old_state, NULL) != 0)
+		debug(ERROR, "Something went wrong restoring the signals definition\n", "__dmemory_sigsegv_handler", 0);
+	return;
 }
 
 static void add_signature_to_variable(void *ptr, size_t size)
@@ -121,6 +128,7 @@ void *__xmalloc(size_t size, char *file, int line)
 {
 #ifdef MEM_DEBUG
 	void *ptr = NULL;
+	stack_variable *myvar = NULL;
 
 	if (__DMEMORY_DEBUG_LEVEL != -1) {
 
@@ -129,12 +137,18 @@ void *__xmalloc(size_t size, char *file, int line)
 
 			if (stack->next == NULL)
 				/* Register the variable in the stack */
-				ptr_last_var = add_pointer_to_stack(stack, ptr, size, file, line);
+				myvar = ptr_last_var = __dmemory_add_pointer_to_stack(stack, ptr, size, file, line);
 			else
 				/* Save the first pointer */
-				add_pointer_to_stack(stack, ptr, size, file, line);
+				myvar = __dmemory_add_pointer_to_stack(stack, ptr, size, file, line);
 
 			add_signature_to_variable(ptr, size);
+
+			/* This will help us in case he screw up the stack badley so SIGSEGV can tell us something */
+			last_file_ok = myvar->filename;
+			last_line_ok = myvar->line;
+			last_checked = myvar->variable;
+
 			return ((char *)ptr) + SIZE_SIGNATURE;
 		}
 
@@ -175,7 +189,7 @@ void *__xrealloc(void *ptr, size_t size, char *file, int line)
 		/* ptr != NULL and size != 0. Classic realloc */
 
 		/* If the pointer doesn't exists but he stills want that memory let's just give it to him */
-		if ((myvar = search_pointer(stack, ((char *)ptr) - SIZE_SIGNATURE)) == NULL)
+		if ((myvar = __dmemory_search_pointer(stack, ((char *)ptr) - SIZE_SIGNATURE)) == NULL)
 			return __xmalloc(size, file, line);
 
 		/* It does exists in our stack, let's just increase it and leave */
@@ -221,12 +235,18 @@ void *__xcalloc(size_t nmemb, size_t size, char *file, int line)
 			/* Register the variable in the stack and put signature to it */
 			if (stack->next == NULL)
 				/* Register the variable in the stack */
-				ptr_last_var = add_pointer_to_stack(stack, ptr, tot, file, line);
+				myvar = ptr_last_var = __dmemory_add_pointer_to_stack(stack, ptr, tot, file, line);
 			else
 				/* Save the first pointer */
-				add_pointer_to_stack(stack, ptr, tot, file, line);
+				myvar = __dmemory_add_pointer_to_stack(stack, ptr, tot, file, line);
 
 			add_signature_to_variable(ptr, tot);
+
+			/* This will help us in case he screw up the stack badley so SIGSEGV can tell us something */
+			last_file_ok = myvar->filename;
+			last_line_ok = myvar->line;
+			last_checked = myvar->variable;
+
 			return ((char *)ptr) + SIZE_SIGNATURE;
 		}
 
@@ -251,7 +271,7 @@ int __xfree(void *ptr, char *file, int line)
 	if (__DMEMORY_DEBUG_LEVEL != -1) {
 
 		/* If the pointer doesn't exists just leave, there's nothing to free */
-		if ((myvar = search_pointer(stack, ((char *)ptr) - SIZE_SIGNATURE)) != NULL) {
+		if ((myvar = __dmemory_search_pointer(stack, ((char *)ptr) - SIZE_SIGNATURE)) != NULL) {
 
 			/* Check if there was a memory corruption before deleting it */
 			if (!CheckSignatures((void *)myvar->variable, (int)myvar->size))
@@ -259,7 +279,7 @@ int __xfree(void *ptr, char *file, int line)
 				myvar->df = 2;
 			else 
 				/* Everything went fine. Remove the variable from the stack */
-				remove_pointer_from_stack(stack, myvar);
+				__dmemory_remove_pointer_from_stack(stack, myvar);
 
 			/* Clean up the mess */
 			free(((char *)ptr) - SIZE_SIGNATURE);
@@ -267,10 +287,10 @@ int __xfree(void *ptr, char *file, int line)
 		}
 		if (stack->next == NULL)
 			/* Register the variable in the stack */
-			myvar = ptr_last_var = add_pointer_to_stack(stack, ptr, 0, file, line);
+			myvar = ptr_last_var = __dmemory_add_pointer_to_stack(stack, ptr, 0, file, line);
 		else
 			/* Save the first pointer */
-			myvar = add_pointer_to_stack(stack, ptr, 0, file, line);
+			myvar = __dmemory_add_pointer_to_stack(stack, ptr, 0, file, line);
 
 		/* Mark it as a double free */
 		myvar->df = 1;
@@ -295,9 +315,16 @@ void __dmemory_init(int level, char *file, int line)
 		/* Initialize the debug level */
 		__DMEMORY_DEBUG_LEVEL = level;
 
-		/* We capture SIGSEV because there could be a memory corruption by the user somewhere */
-		/* TODO: This should be changed in order of sigaction, since it is more polite */
-		signal(SIGSEGV, __dmemory_sigsegv_handler);
+		/* We capture SIGSEGV because there could be a memory corruption by the user somewhere.
+		 * But also save the state of previous signal definition */
+		memset(&new_state, 0, sizeof(new_state));
+		memset(&old_state, 0, sizeof(old_state));
+		sigemptyset(&new_state.sa_mask);
+		new_state.sa_flags = 0;
+		new_state.sa_handler = __dmemory_sigsegv_handler;
+
+		if (sigaction(SIGSEGV, &new_state, &old_state) != 0)
+			debug(ERROR, "Something went wrong capturing signals\n", file, line);
 
 		/* Initialize the stack */
 		stack = malloc(sizeof(stack_variable));
@@ -336,7 +363,7 @@ int dmemory_end(void)
 		}
 
 		/* Load the exceptions array */
-		__load_exceptions_file();
+		__dmemory_load_exceptions_file();
 
 		/* For every variable in the stack let's see what the user left */
 		/* We go from back to top in case he broke things up badley */
@@ -368,7 +395,7 @@ int dmemory_end(void)
 				}
 
 				/* If it is not in the exception list, show it in the report */
-				if (!__ExceptLeak(ptr->filename, ptr->line))
+				if (!__dmemory_ExceptLeak(ptr->filename, ptr->line))
 					fprintf(report, "(L) [%s] [%d] (address: 0x%0.12x)\n", ptr->filename, ptr->line, ((char *)ptr->variable) + SIZE_SIGNATURE);
 
 				/* If it was corrupted and never freed either, show it in the report */
@@ -387,7 +414,7 @@ int dmemory_end(void)
 		free(ptr->next);
 
 		/* Free the exceptions list */
-		__free_exceptions();
+		__dmemory_free_exceptions();
 
 		fclose(report);
 	}

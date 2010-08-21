@@ -45,9 +45,8 @@ typedef struct _stack_variable {
 	void *variable;
 } stack_variable;
 
-int empty_stack(stack_variable * stack);
-stack_variable *search_pointer(stack_variable * stack, void *addr);
-stack_variable *add_pointer_to_stack(stack_variable * stack, void *addr, size_t size, char *file, int line);
-void remove_pointer_from_stack(stack_variable * stack, stack_variable * myvar);
+stack_variable *__dmemory_search_pointer(stack_variable * stack, void *addr);
+stack_variable *__dmemory_add_pointer_to_stack(stack_variable * stack, void *addr, size_t size, char *file, int line);
+void __dmemory_remove_pointer_from_stack(stack_variable * stack, stack_variable * myvar);
 
 #endif
