@@ -37,9 +37,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include "list.h"
+#include "debug.h"
+
+extern int __DMEMORY_DEBUG_LEVEL;
 
 /* This function is a classic ;-) */
-int empty_stack(stack_variable *stack)
+static int empty_stack(stack_variable *stack)
 {
 	if (stack->next == NULL)
 		return 1;
@@ -47,7 +50,7 @@ int empty_stack(stack_variable *stack)
 }
 
 /* Check the whole stack looking up for a certain pointer */
-stack_variable *search_pointer(stack_variable *stack, void *addr)
+stack_variable *__dmemory_search_pointer(stack_variable *stack, void *addr)
 {
 	stack_variable *ptr;
 
@@ -64,12 +67,14 @@ stack_variable *search_pointer(stack_variable *stack, void *addr)
 }
 
 /* Save a pointer in the stack */
-stack_variable *add_pointer_to_stack(stack_variable *stack, void *addr, size_t size, char *file, int line)
+stack_variable *__dmemory_add_pointer_to_stack(stack_variable *stack, void *addr, size_t size, char *file, int line)
 {
 	stack_variable *myvar = NULL;
 
 	/* Save space for one more and place it first */
-	myvar = malloc(sizeof(stack_variable));
+	if ((myvar = malloc(sizeof(stack_variable))) == NULL)
+		debug(ERROR, "Memory exausted, can't save space in the stack\n", file, line);
+
 	myvar->next = stack->next;
 
 	if (!empty_stack(stack))
@@ -85,7 +90,7 @@ stack_variable *add_pointer_to_stack(stack_variable *stack, void *addr, size_t s
 }
 
 /* To be consistent with our memory, if he free up memory, remove it from the stack */
-void remove_pointer_from_stack(stack_variable * stack, stack_variable * myvar)
+void __dmemory_remove_pointer_from_stack(stack_variable * stack, stack_variable * myvar)
 {
 	myvar->prev->next = myvar->next;
 	myvar->next->prev = myvar->prev;

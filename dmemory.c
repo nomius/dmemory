@@ -137,10 +137,10 @@ void *__xmalloc(size_t size, char *file, int line)
 
 			if (stack->next == NULL)
 				/* Register the variable in the stack */
-				myvar = ptr_last_var = add_pointer_to_stack(stack, ptr, size, file, line);
+				myvar = ptr_last_var = __dmemory_add_pointer_to_stack(stack, ptr, size, file, line);
 			else
 				/* Save the first pointer */
-				myvar = add_pointer_to_stack(stack, ptr, size, file, line);
+				myvar = __dmemory_add_pointer_to_stack(stack, ptr, size, file, line);
 
 			add_signature_to_variable(ptr, size);
 
@@ -189,7 +189,7 @@ void *__xrealloc(void *ptr, size_t size, char *file, int line)
 		/* ptr != NULL and size != 0. Classic realloc */
 
 		/* If the pointer doesn't exists but he stills want that memory let's just give it to him */
-		if ((myvar = search_pointer(stack, ((char *)ptr) - SIZE_SIGNATURE)) == NULL)
+		if ((myvar = __dmemory_search_pointer(stack, ((char *)ptr) - SIZE_SIGNATURE)) == NULL)
 			return __xmalloc(size, file, line);
 
 		/* It does exists in our stack, let's just increase it and leave */
@@ -235,10 +235,10 @@ void *__xcalloc(size_t nmemb, size_t size, char *file, int line)
 			/* Register the variable in the stack and put signature to it */
 			if (stack->next == NULL)
 				/* Register the variable in the stack */
-				myvar = ptr_last_var = add_pointer_to_stack(stack, ptr, tot, file, line);
+				myvar = ptr_last_var = __dmemory_add_pointer_to_stack(stack, ptr, tot, file, line);
 			else
 				/* Save the first pointer */
-				myvar = add_pointer_to_stack(stack, ptr, tot, file, line);
+				myvar = __dmemory_add_pointer_to_stack(stack, ptr, tot, file, line);
 
 			add_signature_to_variable(ptr, tot);
 
@@ -271,7 +271,7 @@ int __xfree(void *ptr, char *file, int line)
 	if (__DMEMORY_DEBUG_LEVEL != -1) {
 
 		/* If the pointer doesn't exists just leave, there's nothing to free */
-		if ((myvar = search_pointer(stack, ((char *)ptr) - SIZE_SIGNATURE)) != NULL) {
+		if ((myvar = __dmemory_search_pointer(stack, ((char *)ptr) - SIZE_SIGNATURE)) != NULL) {
 
 			/* Check if there was a memory corruption before deleting it */
 			if (!CheckSignatures((void *)myvar->variable, (int)myvar->size))
@@ -279,7 +279,7 @@ int __xfree(void *ptr, char *file, int line)
 				myvar->df = 2;
 			else 
 				/* Everything went fine. Remove the variable from the stack */
-				remove_pointer_from_stack(stack, myvar);
+				__dmemory_remove_pointer_from_stack(stack, myvar);
 
 			/* Clean up the mess */
 			free(((char *)ptr) - SIZE_SIGNATURE);
@@ -287,10 +287,10 @@ int __xfree(void *ptr, char *file, int line)
 		}
 		if (stack->next == NULL)
 			/* Register the variable in the stack */
-			myvar = ptr_last_var = add_pointer_to_stack(stack, ptr, 0, file, line);
+			myvar = ptr_last_var = __dmemory_add_pointer_to_stack(stack, ptr, 0, file, line);
 		else
 			/* Save the first pointer */
-			myvar = add_pointer_to_stack(stack, ptr, 0, file, line);
+			myvar = __dmemory_add_pointer_to_stack(stack, ptr, 0, file, line);
 
 		/* Mark it as a double free */
 		myvar->df = 1;
@@ -363,7 +363,7 @@ int dmemory_end(void)
 		}
 
 		/* Load the exceptions array */
-		__load_exceptions_file();
+		__dmemory_load_exceptions_file();
 
 		/* For every variable in the stack let's see what the user left */
 		/* We go from back to top in case he broke things up badley */
@@ -395,7 +395,7 @@ int dmemory_end(void)
 				}
 
 				/* If it is not in the exception list, show it in the report */
-				if (!__ExceptLeak(ptr->filename, ptr->line))
+				if (!__dmemory_ExceptLeak(ptr->filename, ptr->line))
 					fprintf(report, "(L) [%s] [%d] (address: 0x%0.12x)\n", ptr->filename, ptr->line, ((char *)ptr->variable) + SIZE_SIGNATURE);
 
 				/* If it was corrupted and never freed either, show it in the report */
@@ -414,7 +414,7 @@ int dmemory_end(void)
 		free(ptr->next);
 
 		/* Free the exceptions list */
-		__free_exceptions();
+		__dmemory_free_exceptions();
 
 		fclose(report);
 	}

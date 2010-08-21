@@ -43,7 +43,7 @@
 
 extern int __DMEMORY_DEBUG_LEVEL;
 
-/* This should be strnlen... THANKS GNU PEOPLE FOR SCREWING THE NAMESPACE! */
+/* This should be strnlen... THANKS GNU PEOPLE FOR SCREWING UP THE NAMESPACE! */
 static inline int max_strlen(const char *str, int maxlen)
 {
 	int i = 0;
@@ -56,7 +56,7 @@ static inline int max_strlen(const char *str, int maxlen)
 	return i;
 }
 
-int __load_exceptions_file(void)
+int __dmemory_load_exceptions_file(void)
 {
 	char *filename = NULL;
 	FILE *FExceptions = NULL;
@@ -112,7 +112,7 @@ int __load_exceptions_file(void)
 	return 0;
 }
 
-int __ExceptLeak(char *filename, int line)
+int __dmemory_ExceptLeak(char *filename, int line)
 {
 	int i = 0;
 
@@ -123,7 +123,7 @@ int __ExceptLeak(char *filename, int line)
 	return 0;
 }
 
-void __free_exceptions(void)
+void __dmemory_free_exceptions(void)
 {
 	int i = 0;
 
