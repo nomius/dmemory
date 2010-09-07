@@ -58,6 +58,8 @@ int main(int argc, char *argv[])
 	for (i = 10; i <= 15; i++)
 		ptr[i] = i;
 
+	dmemory_inspect_stack();
+
 	/* Show it... you know, for the kids, they like I/O. */
 	for (i = 0; i < 15; i++)
 		printf("%d: %d\n", i, ptr[i]);
