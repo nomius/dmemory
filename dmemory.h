@@ -41,14 +41,16 @@ void *__xmalloc(size_t size, char *file, int line);
 void *__xcalloc(size_t nmemb, size_t size, char *file, int line);
 void *__xrealloc(void *ptr, size_t size, char *file, int line);
 int __xfree(void *ptr, char *file, int line);
-void memory_init(int level);
-int memory_end(void);
-int memory_stack_inspect(void);
+
+void __dmemory_init(int level, char *file, int line);
+int __dmemory_stack_inspect(int dofree, char *file, int line);
 
 #define malloc(size) __xmalloc((size), (char *)__FILE__, __LINE__)
 #define calloc(nmemb, size) __xcalloc((nmemb), (size), (char *)__FILE__, __LINE__)
 #define realloc(ptr, size) __xrealloc((ptr), (size), (char *)__FILE__, __LINE__)
 #define free(ptr) __xfree((ptr), (char *)__FILE__, __LINE__)
-#define dmemory_init(level)  __dmemory_init(level, (char *)__FILE__, __LINE__)
+#define dmemory_init(level) __dmemory_init(level, (char *)__FILE__, __LINE__)
+#define dmemory_inspect_stack() __dmemory_inspect_stack(0, (char *)__FILE__, __LINE__)
+#define dmemory_end() __dmemory_inspect_stack(1, NULL, 0)
 
 #endif
