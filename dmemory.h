@@ -43,6 +43,7 @@ void *__xrealloc(void *ptr, size_t size, char *file, int line);
 int __xfree(void *ptr, char *file, int line);
 void memory_init(int level);
 int memory_end(void);
+int memory_stack_inspect(void);
 
 #define malloc(size) __xmalloc((size), (char *)__FILE__, __LINE__)
 #define calloc(nmemb, size) __xcalloc((nmemb), (size), (char *)__FILE__, __LINE__)

@@ -36,9 +36,13 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <errno.h>
 #include <signal.h>
+#include <limits.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "debug.h"
 #include "list.h"
 #include "exceptions.h"
@@ -412,6 +416,92 @@ int dmemory_end(void)
 		}
 		/* Free the last one */
 		free(ptr->next);
+
+		/* Free the exceptions list */
+		__dmemory_free_exceptions();
+
+		fclose(report);
+	}
+#endif
+	return 0;
+}
+
+int dmemory_inspect_stack(void)
+{
+#ifdef MEM_DEBUG
+	char *filename;
+	char ffilename[PATH_MAX];
+	int i = 0;
+	struct stat ffstat;
+	stack_variable *ptr;
+
+	if (__DMEMORY_DEBUG_LEVEL != -1) {
+		/* Load the variable in the filename */
+		if ((filename = getenv(VAR_REPORT_FILENAME)) == NULL) {
+			debug(INFO, "%s not defined, no report will be generated\n", "LIBRARY", 0, VAR_REPORT_FILENAME);
+			return 1;
+		}
+
+		/* Check if it was defined and not empty */
+		if (*filename == '\0') {
+			debug(INFO, "%s defined but empty, no report will be generated\n", "LIBRARY", 0, VAR_REPORT_FILENAME);
+			return 1;
+		}
+
+		/* Open the report filename */
+		for (i = 0; i < INT_MAX; i++) {
+			sprintf(ffilename, "%s_%i", filename, i);
+			if (stat(ffilename, &ffstat))
+				if (errno == ENOENT) {
+					if ((report = fopen(ffilename, "w")) == NULL) {
+						debug(INFO, "opening %s", strerror(errno), errno, filename);
+						return 1;
+					}
+					else
+						break;
+				}
+		}
+
+		/* Load the exceptions array */
+		__dmemory_load_exceptions_file();
+
+		/* For every variable in the stack let's see what the user left */
+		/* We go from back to top in case he broke things up badley */
+		for (ptr = ptr_last_var;; ptr = ptr->prev) {
+
+			/* This will help us in case he screw up the stack badley */
+			last_file_ok = ptr->filename;
+			last_line_ok = ptr->line;
+			last_checked = ptr->variable;
+
+			if (ptr->variable != NULL || ptr->df) {
+
+				/* If it was a double free, show it in the report */
+				if (ptr->df == 1) {
+					fprintf(report, "(F) [%s] [%d] (address: 0x%0.12x)\n", ptr->filename, ptr->line, ((char *)ptr->variable) + SIZE_SIGNATURE);
+					continue;
+				}
+
+				/* If it was a memory corruption from a freed memory space, show it in the report */
+				if (ptr->df == 2) {
+					fprintf(report, "(C) [%s] [%d] (address: 0x%0.12x)\n", ptr->filename, ptr->line, ((char *)ptr->variable) + SIZE_SIGNATURE);
+					continue;
+				}
+
+				/* If it is not in the exception list, show it in the report */
+				if (!__dmemory_ExceptLeak(ptr->filename, ptr->line))
+					fprintf(report, "(L) [%s] [%d] (address: 0x%0.12x)\n", ptr->filename, ptr->line, ((char *)ptr->variable) + SIZE_SIGNATURE);
+
+				/* If it was corrupted and never freed either, show it in the report */
+				if (!CheckSignatures((void *)ptr->variable, (int)ptr->size))
+					fprintf(report, "(C) [%s] [%d] (address: 0x%0.12x)\n", ptr->filename, ptr->line, ((char *)ptr->variable) + SIZE_SIGNATURE);
+
+			}
+
+			/* Enough, it's over */
+			if (ptr->prev == NULL)
+				break;
+		}
 
 		/* Free the exceptions list */
 		__dmemory_free_exceptions();
